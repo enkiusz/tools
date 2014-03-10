@@ -1,0 +1,68 @@
+#!/bin/bash
+
+while true; do
+
+############################################################
+# Load.
+
+read av1 av2 av3 drop < /proc/loadavg
+LOADAVG="$av1 $av2 $av3"
+
+############################################################
+# Filesystem info.
+FSINFO=$(df -PT | grep -v tmpfs | tail -n +2 | awk '{printf("%s(%s) ", $7, $6);}' )
+
+############################################################
+# Battery charge.
+
+BATT_DEVICE="/sys/class/power_supply/BAT0"
+BATTERY_FULL=`cat ${BATT_DEVICE}/charge_full`
+BATTERY_NOW=`cat ${BATT_DEVICE}/charge_now`
+BATTERY_PROC=`echo "100*$BATTERY_NOW/$BATTERY_FULL"|bc`
+
+read BATTERY_STATUS < ${BATT_DEVICE}/status
+case "$BATTERY_STATUS" in
+    Full) 
+	BATTERY_STATUS_CODE="-";;
+    Discharging)
+        BATTERY_STATUS_CODE="↓";;
+    Charging)
+	BATTERY_STATUS_CODE="↑";;
+    Unknown)
+	BATTERY_STATUS_CODE="?";;
+    *)
+	BATTERY_STATUS_CODE="???($BATTERY_STATUS)";;
+esac
+
+BATTERY_STATE="${BATTERY_PROC}${BATTERY_STATUS_CODE}"
+
+
+############################################################
+# Hibernate if battery is very low
+[ \( "$BATTERY_PROC" -lt 3 \) -a \( "$BATTERY_STATUS" == "Discharging" \) ] && sudo systemctl hibernate
+
+############################################################
+# Wireless status (ESSID and percentage)
+INTERFACE=intwlan
+WIRELESS="$INTERFACE: no iface"
+
+IFACEDIR="/sys/class/net/${INTERFACE}"
+if [ -d "${IFACEDIR}" ]; then
+    read STATE < "${IFACEDIR}/operstate"
+
+    WIRELESS="$INTERFACE: $STATE"
+
+    if [[ ${STATE} == "up" ]]; then
+	IWCONFIG=`/usr/sbin/iw dev ${INTERFACE} link 2>/dev/null`
+
+	ESSID=`echo "${IWCONFIG}" | grep "SSID" | cut -d" " -f 2-`
+	STRENGTH=`echo "${IWCONFIG}" | grep "signal:" | cut -d" " -f 2-`
+	WIRELESS="${ESSID} ${STRENGTH}"
+    fi
+fi
+
+xsetroot -name "${LOADAVG} | ${FSINFO} | ${BATTERY_STATE} | ${WIRELESS} | $(date -Is)"
+
+sleep 1
+done
+

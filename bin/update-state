@@ -1,0 +1,17 @@
+#!/bin/sh
+
+DOCK_DEVICE="/sys/devices/platform/dock.0/docked"
+DOCK_STATUS=$(cat "$DOCK_DEVICE")
+
+case "$DOCK_STATUS" in
+    0)
+	logger "Laptop undocked - running actions"
+	$HOME/bin/undocked
+    ;;
+    1)
+	logger "Laptop docked - running actions"
+	$HOME/bin/docked
+    ;;
+    *)
+	logger "Unknown status of dock device '$DOCK_DEVICE': '$DOCK_STATUS'"
+esac

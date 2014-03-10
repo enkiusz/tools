@@ -1,0 +1,14 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+my $s = <>;
+while (length($s) > 0) {
+      my $a = unpack("Z*", $s);
+
+      print($a, "\n");
+
+      $s = substr($s, length($a)+1);
+}
+

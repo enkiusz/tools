@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Setup pulseaudio to output to dock station
+pactl set-card-profile 0  output:iec958-stereo+input:analog-stereo
+
