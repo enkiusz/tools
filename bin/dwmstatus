@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Reference: http://robertmuth.blogspot.com/2012/08/better-bash-scripting-in-15-minutes.html
+set -o nounset
+
 while true; do
 
 ############################################################
@@ -53,10 +56,12 @@ for iface in $IFACE_NAMES; do
 
 	if [[ ${STATE} == "up" ]]; then
 	    IWCONFIG=`/usr/sbin/iw dev ${iface} link 2>/dev/null`
-
-	    ESSID=`echo "${IWCONFIG}" | grep "SSID" | cut -d" " -f 2-`
-	    STRENGTH=`echo "${IWCONFIG}" | grep "signal:" | cut -d" " -f 2-`
-	    IFACE_INFO[$iface]="$iface: ${ESSID} ${STRENGTH},"
+	    
+	    if [[ "${IWCONFIG}" != "Not connected." ]]; then
+		ESSID=`echo "${IWCONFIG}" | grep "SSID" | cut -d" " -f 2-`
+		STRENGTH=`echo "${IWCONFIG}" | grep "signal:" | cut -d" " -f 2-`
+		IFACE_INFO[$iface]="$iface: ${ESSID} ${STRENGTH},"
+	    fi
 	fi
 	
     fi
