@@ -3,12 +3,6 @@
 while true; do
 
 ############################################################
-# Load.
-
-read av1 av2 av3 drop < /proc/loadavg
-LOADAVG="$av1 $av2 $av3"
-
-############################################################
 # Filesystem info.
 FSINFO=$(df -PT | grep -v tmpfs | tail -n +2 | awk '{printf("%s(%s) ", $7, $6);}' )
 
@@ -41,27 +35,34 @@ BATTERY_STATE="${BATTERY_PROC}${BATTERY_STATUS_CODE}"
 # Hibernate if battery is very low
 [ \( "$BATTERY_PROC" -lt 3 \) -a \( "$BATTERY_STATUS" == "Discharging" \) ] && sudo systemctl hibernate
 
+
 ############################################################
-# Wireless status (ESSID and percentage)
-INTERFACE=intwlan
-WIRELESS="$INTERFACE: no iface"
+# Network interfaces status
 
-IFACEDIR="/sys/class/net/${INTERFACE}"
-if [ -d "${IFACEDIR}" ]; then
-    read STATE < "${IFACEDIR}/operstate"
+unset IFACE_INFO[*]
+declare -A IFACE_INFO
 
-    WIRELESS="$INTERFACE: $STATE"
+IFACE_NAMES=$(ip -o link | grep -v -e link/loopback | awk -F ':' '{print $2;}')
+for iface in $IFACE_NAMES; do
+    IFACEDIR="/sys/class/net/${iface}"
 
-    if [[ ${STATE} == "up" ]]; then
-	IWCONFIG=`/usr/sbin/iw dev ${INTERFACE} link 2>/dev/null`
+    if [ -d "${IFACEDIR}" ]; then
+	read STATE < "${IFACEDIR}/operstate"
+	
+	IFACE_INFO[$iface]="$iface: $STATE,"
 
-	ESSID=`echo "${IWCONFIG}" | grep "SSID" | cut -d" " -f 2-`
-	STRENGTH=`echo "${IWCONFIG}" | grep "signal:" | cut -d" " -f 2-`
-	WIRELESS="${ESSID} ${STRENGTH}"
+	if [[ ${STATE} == "up" ]]; then
+	    IWCONFIG=`/usr/sbin/iw dev ${iface} link 2>/dev/null`
+
+	    ESSID=`echo "${IWCONFIG}" | grep "SSID" | cut -d" " -f 2-`
+	    STRENGTH=`echo "${IWCONFIG}" | grep "signal:" | cut -d" " -f 2-`
+	    IFACE_INFO[$iface]="$iface: ${ESSID} ${STRENGTH},"
+	fi
+	
     fi
-fi
+done
 
-xsetroot -name "${LOADAVG} | ${FSINFO} | ${BATTERY_STATE} | ${WIRELESS} | $(date -Is)"
+xsetroot -name "${FSINFO} | ${BATTERY_STATE} | ${IFACE_INFO[*]} | $(date -Is)"
 
 sleep 1
 done
