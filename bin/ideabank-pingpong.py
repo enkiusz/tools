@@ -263,34 +263,23 @@ if logout_text is not None:
 else:
     print("Logout was unsuccessful, HTTP response content: ", logout_req.text)
 
-sys.exit(0)
-
-
 #
 # Unused code, just for documentation purposes
 #
 
-pending_deposits = soup.find('span', text='Lista Lokat Nieopłaconych oraz w trakcie realizacji')
+# pending_deposits = soup.find('span', text='Lista Lokat Nieopłaconych oraz w trakcie realizacji')
 
-if pending_deposits is not None:
+# if pending_deposits is not None:
     
-    for row in pending_deposits.find_parent('div', class_='content').find_all('div', class_='data'):
-        # print("Pending deposit: ", row)
+#     for row in pending_deposits.find_parent('div', class_='content').find_all('div', class_='data'):
+#         # print("Pending deposit: ", row)
 
-        cols = row.find_all_next('div', class_="inner", limit=5)
-        # print("Columns: ", cols)
-        deposit_name = cols[0].get_text(strip=True)
-        time = cols[1].get_text(strip=True)
-        ends = cols[2].get_text(strip=True)
-        apr = cols[3].get_text(strip=True)
-        amount = Money.Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
-        print("Pending deposit '%s' @ '%s'  for '%s' elapses @ '%s' requested '%s'" % ( deposit_name, apr, time, ends, amount))
-
-logout_req = session.get('https://secure.ideabank.pl/main/logout')
-soup = BeautifulSoup(logout_req.text)
-logout_text = soup.find(text=re.compile('Zostałeś wylogowany'))
-if logout_text is not None:
-    print("Logout was successful")
-else:
-    print("Logout was unsuccessful, HTTP response content: ", logout_req.text)
+#         cols = row.find_all_next('div', class_="inner", limit=5)
+#         # print("Columns: ", cols)
+#         deposit_name = cols[0].get_text(strip=True)
+#         time = cols[1].get_text(strip=True)
+#         ends = cols[2].get_text(strip=True)
+#         apr = cols[3].get_text(strip=True)
+#         amount = Money.Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
+#         print("Pending deposit '%s' @ '%s'  for '%s' elapses @ '%s' requested '%s'" % ( deposit_name, apr, time, ends, amount))
 
