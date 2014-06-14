@@ -3,6 +3,10 @@
 # Reference: http://robertmuth.blogspot.com/2012/08/better-bash-scripting-in-15-minutes.html
 set -o nounset
 
+# Config
+SYS_BATTERY="BAT0" # The main system battery name used to decide whether to hibernate
+POWER_SUPPLY_ROOT="/sys/class/power_supply" # The sysfs directory used to find all power supplies (AC+batteries)
+
 while true; do
 
 ############################################################
@@ -10,33 +14,61 @@ while true; do
 FSINFO=$(df -PT | grep -v tmpfs | tail -n +2 | awk '{printf("%s(%s) ", $7, $6);}' )
 
 ############################################################
-# Battery charge.
+# Power supply info
 
-BATT_DEVICE="/sys/class/power_supply/BAT0"
-BATTERY_FULL=`cat ${BATT_DEVICE}/charge_full`
-BATTERY_NOW=`cat ${BATT_DEVICE}/charge_now`
-BATTERY_PROC=`echo "100*$BATTERY_NOW/$BATTERY_FULL"|bc`
+unset SUPPLY_INFO[*]
+declare -A SUPPLY_INFO
 
-read BATTERY_STATUS < ${BATT_DEVICE}/status
-case "$BATTERY_STATUS" in
-    Full) 
-	BATTERY_STATUS_CODE="-";;
-    Discharging)
-        BATTERY_STATUS_CODE="↓";;
-    Charging)
-	BATTERY_STATUS_CODE="↑";;
-    Unknown)
-	BATTERY_STATUS_CODE="?";;
-    *)
-	BATTERY_STATUS_CODE="???($BATTERY_STATUS)";;
-esac
+for power_supply in $POWER_SUPPLY_ROOT/*; do
 
-BATTERY_STATE="${BATTERY_PROC}${BATTERY_STATUS_CODE}"
+    SUPPLY_STATUS="?" # Power supply status is unknown first
+    
+    # This will happen for all supplies (AC and battery)
+    SUPPLY_ONLINE_FILE="$power_supply/online"
+    if [ -r "$SUPPLY_ONLINE_FILE" ]; then
+	read SUPPLY_ONLINE < ${SUPPLY_ONLINE_FILE}
+	case "$SUPPLY_ONLINE" in
+	    1) 
+		SUPPLY_STATUS="+";;
+	    0)
+		SUPPLY_STATUS="-";;
+	esac
+    fi
+
+    # If more specific status is available override it. This will be the 
+    # case for batteries which report charging/discharging state
+    SUPPLY_STATUS_FILE="$power_supply/status"
+    if [ -r "$SUPPLY_STATUS_FILE" ]; then
+	read SUPPLY_STATUS < ${SUPPLY_STATUS_FILE}
+	case "$SUPPLY_STATUS" in
+	    Full) 
+		SUPPLY_STATUS="=";;
+	    Discharging)
+		SUPPLY_STATUS="↓";;
+	    Charging)
+		SUPPLY_STATUS="↑";;
+	    Unknown)
+		SUPPLY_STATUS="?";;
+	esac
+    fi
+
+    unset SUPPLY_CAPACITY
+
+    # Add capacity info if available
+    SUPPLY_CAPACITY_FILE="$power_supply/capacity"
+    [ -r "$SUPPLY_CAPACITY_FILE" ] && read SUPPLY_CAPACITY < ${SUPPLY_CAPACITY_FILE}
+
+    SUPPLY_INFO[$power_supply]="$(basename $power_supply)$SUPPLY_STATUS${SUPPLY_CAPACITY:+$SUPPLY_CAPACITY}"
+done
+
 
 
 ############################################################
-# Hibernate if battery is very low
-[ \( "$BATTERY_PROC" -lt 3 \) -a \( "$BATTERY_STATUS" == "Discharging" \) ] && sudo systemctl hibernate
+# Hibernate if main battery is very low
+read SYS_BATTERY_CAPACITY < $POWER_SUPPLY_ROOT/$SYS_BATTERY/capacity
+read SYS_BATTERY_STATUS < $POWER_SUPPLY_ROOT/$SYS_BATTERY/status
+
+[ \( "$SYS_BATTERY_CAPACITY" -lt 3 \) -a \( "$SYS_BATTERY_STATUS" == "Discharging" \) ] && sudo systemctl hibernate
 
 
 ############################################################
@@ -45,14 +77,14 @@ BATTERY_STATE="${BATTERY_PROC}${BATTERY_STATUS_CODE}"
 unset IFACE_INFO[*]
 declare -A IFACE_INFO
 
-IFACE_NAMES=$(ip -o link | grep -v -e link/loopback | awk -F ':' '{print $2;}')
+IFACE_NAMES=$(ip -o link | grep -v -e link/loopback -e link/sit | awk -F ':' '{print $2;}')
 for iface in $IFACE_NAMES; do
     IFACEDIR="/sys/class/net/${iface}"
 
     if [ -d "${IFACEDIR}" ]; then
 	read STATE < "${IFACEDIR}/operstate"
 	
-	IFACE_INFO[$iface]="$iface: $STATE,"
+	IFACE_INFO[$iface]="$iface: $STATE"
 
 	if [[ ${STATE} == "up" ]]; then
 	    IWCONFIG=`/usr/sbin/iw dev ${iface} link 2>/dev/null`
@@ -60,14 +92,14 @@ for iface in $IFACE_NAMES; do
 	    if [[ "${IWCONFIG}" != "Not connected." ]]; then
 		ESSID=`echo "${IWCONFIG}" | grep "SSID" | cut -d" " -f 2-`
 		STRENGTH=`echo "${IWCONFIG}" | grep "signal:" | cut -d" " -f 2-`
-		IFACE_INFO[$iface]="$iface: ${ESSID} ${STRENGTH},"
+		IFACE_INFO[$iface]="$iface: ${ESSID} ${STRENGTH}"
 	    fi
 	fi
 	
     fi
 done
 
-xsetroot -name "${FSINFO} | ${BATTERY_STATE} | ${IFACE_INFO[*]} | $(date -Is)"
+xsetroot -name "${FSINFO} | ${SUPPLY_INFO[*]} | ${IFACE_INFO[*]} | $(date -Is)"
 
 sleep 1
 done
