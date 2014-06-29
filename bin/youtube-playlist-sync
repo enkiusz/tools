@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# youtube-playlist-sync - Download a local backup of the movies in your playlists
+# Copyright (C) 2014 Maciej Grela <enki@fsck.pl>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Reference: http://robertmuth.blogspot.com/2012/08/better-bash-scripting-in-15-minutes.html
+set -o nounset
+set -o errexit
+
+readonly SECRETS_DIR="$HOME/.secrets"
+readonly PLAYLISTS_DIR="$(xdg-user-dir VIDEOS)/www.youtube.com/playlists"
+
+#
+# For each published playlist make a directory inside PLAYLISTS_DIR
+#
+pushd "$PLAYLISTS_DIR" > /dev/null
+CLIENT_SECRETS_FILE="$SECRETS_DIR/youtube/client_secrets.json" OAUTH2_TOKEN_DIR="$SECRETS_DIR/oauth2" youtube-get-playlists.py | while read id title; do
+    mkdir -p "$id.items"
+    if [ ! -h "$title" ]; then
+	ln -s "$id.items" "$title"
+    fi
+done
+popd > /dev/null
+
+get_playlist_ids() {
+    find "$PLAYLISTS_DIR" -name '*.items' -type d -printf '%f ' | sed 's/\.items//g'
+}
+
+for id in $(get_playlist_ids); do
+    playlist_destdir="$PLAYLISTS_DIR/$id.items"
+    echo "Playlist '$id': Downloading into '$playlist_destdir'"
+
+    pushd "$playlist_destdir" > /dev/null
+    if ! youtube-dl --no-overwrite --continue --ignore-errors "https://www.youtube.com/view_play_list?p=$id"; then
+	echo "Playlist '$id': Some errors have occured during download"
+    fi
+    popd > /dev/null
+
+done
