@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
 
-import requests, string, os, re
+import requests, string, re
 from bs4 import BeautifulSoup
 
-local_root = "/home/enki/mirror/googleapis/ajax/libs"
-remote_root = '//ajax.googleapis.com/ajax/libs'
-
-# Load library list
 r = requests.get('https://developers.google.com/speed/libraries/devguide')
 
 if r.status_code != 200:
-    print("Error downloading library list, status_code='%d'" % (r.status_code))
+    print("Error downloading library list page, status_code='%d'" % (r.status_code))
 
 soup = BeautifulSoup(r.text)
-
-# print(soup)
-
 for lib_div in soup.find('h1', id='Libraries').find_next_siblings('div'):
     lib_id = lib_div['id']
 
@@ -27,36 +20,14 @@ for lib_div in soup.find('h1', id='Libraries').find_next_siblings('div'):
     refs = list()
     for snippet in lib_div.find_all('code', class_='snippet'):
         
-        # Add the refs found to the list of refs for this library while removing the common remote root prefix
-        # And converting them to string templates to replace version
-        
         for ref in re.findall(r'(?:href|src)=[\'"]([^"\']+?)[\'"]', snippet.get_text(strip=True), re.IGNORECASE):
-            ref = re.sub("^%s/" % (remote_root), '', ref);
-            sp = ref.split('/', 2); ref = '/'.join([sp[0], '%s', sp[2]])
 
-            refs.append(ref)
+            # Inside each reference URL look for one of the available version tags.
+            # Replace this version tag with a version placeholder ('%s')
+            for v in versions:
+                if re.search("/%s/" % (v), ref) is not None:
+                    refs.append( re.sub("/%s/" % (v), '/%s/', ref) )
 
     for ref in refs:
         for version in versions:
-            # print("Downloading library '%s' ref '%s' version tag '%s'" % ( lib_id, ref, version ))
-
-            src_uri = 'https:%s/%s' % ( remote_root, ref % ( version ) )
-            dest_file = '%s/%s' % ( local_root, ref % ( version ) )
-
-            # Get the directory part of the file
-            dest_dir = '/'.join( dest_file.split('/')[:-1] )
-
-            try:
-                os.makedirs(dest_dir)
-            except FileExistsError:
-                pass
-
-            # Download the file
-            r = requests.get(src_uri)
-            print("Downloading '%s' -> '%s'" % (src_uri, dest_file))
-            with open(dest_file, 'wb') as fd:
-                for chunk in r.iter_content(64*1024):
-                    fd.write(chunk)
-                fd.close()
-
-            
+            print('https:%s' % ( ref % ( version ) ))
