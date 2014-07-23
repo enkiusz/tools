@@ -26,4 +26,9 @@ for url in $(googlehostedlibs-list.py); do
 # Need to manually set the IP to which ajax.googleapis.com should resolve to as we're changing it
 # in /etc/hosts for the browser.
 
-done | xargs curl  --show-error --remote-time --resolve "$ajax_host:$ajax_port:$ajax_ip"
+done | xargs curl --silent  --show-error --remote-time --resolve "$ajax_host:$ajax_port:$ajax_ip"
+
+# Make the files readable by the world
+find "$MIRROR_ROOT" -type f | xargs chmod a+r
+find "$MIRROR_ROOT" -type d | xargs chmod a+rx
+
