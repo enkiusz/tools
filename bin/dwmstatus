@@ -1,11 +1,14 @@
 #!/bin/bash
 
+# Config
+readonly SYS_BATTERY=${SYS_BATTERY:-BAT0} # The main system battery name used to decide whether to hibernate
+readonly POWER_SUPPLY_ROOT=${POWER_SUPPLY_ROOT:-/sys/class/power_supply} # The sysfs directory used to find all power supplies (AC+batteries)
+
 # Reference: http://robertmuth.blogspot.com/2012/08/better-bash-scripting-in-15-minutes.html
 set -o nounset
+set -o errexit
+set -o pipefail
 
-# Config
-SYS_BATTERY="BAT0" # The main system battery name used to decide whether to hibernate
-POWER_SUPPLY_ROOT="/sys/class/power_supply" # The sysfs directory used to find all power supplies (AC+batteries)
 
 while true; do
 
@@ -25,7 +28,7 @@ for power_supply in $POWER_SUPPLY_ROOT/*; do
     
     # This will happen for all supplies (AC and battery)
     SUPPLY_ONLINE_FILE="$power_supply/online"
-    if [ -r "$SUPPLY_ONLINE_FILE" ]; then
+    if [[ -r "$SUPPLY_ONLINE_FILE" ]]; then
 	read SUPPLY_ONLINE < ${SUPPLY_ONLINE_FILE}
 	case "$SUPPLY_ONLINE" in
 	    1) 
@@ -38,7 +41,7 @@ for power_supply in $POWER_SUPPLY_ROOT/*; do
     # If more specific status is available override it. This will be the 
     # case for batteries which report charging/discharging state
     SUPPLY_STATUS_FILE="$power_supply/status"
-    if [ -r "$SUPPLY_STATUS_FILE" ]; then
+    if [[ -r "$SUPPLY_STATUS_FILE" ]]; then
 	read SUPPLY_STATUS < ${SUPPLY_STATUS_FILE}
 	case "$SUPPLY_STATUS" in
 	    Full) 
@@ -56,7 +59,7 @@ for power_supply in $POWER_SUPPLY_ROOT/*; do
 
     # Add capacity info if available
     SUPPLY_CAPACITY_FILE="$power_supply/capacity"
-    [ -r "$SUPPLY_CAPACITY_FILE" ] && read SUPPLY_CAPACITY < ${SUPPLY_CAPACITY_FILE}
+    [[ -r "$SUPPLY_CAPACITY_FILE" ]] && read SUPPLY_CAPACITY < ${SUPPLY_CAPACITY_FILE}
 
     SUPPLY_INFO[$power_supply]="$(basename $power_supply)$SUPPLY_STATUS${SUPPLY_CAPACITY:+$SUPPLY_CAPACITY}"
 done
@@ -68,7 +71,7 @@ done
 read SYS_BATTERY_CAPACITY < $POWER_SUPPLY_ROOT/$SYS_BATTERY/capacity
 read SYS_BATTERY_STATUS < $POWER_SUPPLY_ROOT/$SYS_BATTERY/status
 
-[ \( "$SYS_BATTERY_CAPACITY" -lt 3 \) -a \( "$SYS_BATTERY_STATUS" == "Discharging" \) ] && sudo systemctl hibernate
+[[ ( "$SYS_BATTERY_CAPACITY" -lt 3 ) && ( "$SYS_BATTERY_STATUS" == "Discharging" ) ]] && sudo systemctl hibernate
 
 
 ############################################################
@@ -81,7 +84,7 @@ IFACE_NAMES=$(ip -o link | grep -v -e link/loopback -e link/sit | awk -F ':' '{p
 for iface in $IFACE_NAMES; do
     IFACEDIR="/sys/class/net/${iface}"
 
-    if [ -d "${IFACEDIR}" ]; then
+    if [[ -d "${IFACEDIR}" ]]; then
 	read STATE < "${IFACEDIR}/operstate"
 	
 	IFACE_INFO[$iface]="$iface: $STATE"
