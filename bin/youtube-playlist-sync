@@ -44,7 +44,7 @@ for id in $(get_playlist_ids); do
     echo "Playlist '$id': Downloading into '$playlist_destdir'"
 
     pushd "$playlist_destdir" > /dev/null
-    if ! youtube-dl --no-overwrite --continue --ignore-errors "https://www.youtube.com/view_play_list?p=$id"; then
+    if ! youtube-dl --write-description --write-annotations --write-thumbnail --write-info-json --no-overwrite --continue --ignore-errors "https://www.youtube.com/view_play_list?p=$id"; then
 	echo "Playlist '$id': Some errors have occured during download"
     fi
     popd > /dev/null
