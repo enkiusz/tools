@@ -117,31 +117,35 @@ active_deposits = {}
 deposits_req = session.get('https://secure.ideabank.pl/deposits/index')
 soup = BeautifulSoup(deposits_req.text)
 
-for row in soup.find('span', text='Lista Twoich Lokat').find_parent('div', class_='content').find_all('div', class_='data'):
-    # print("Active deposit: ", row)
+deposits_span = soup.find('span', text='Lista Twoich Lokat')
+if deposits_span is not None:
+    for row in deposits_span.find_parent('div', class_='content').find_all('div', class_='data'):
+        # print("Active deposit: ", row)
 
-    deposit_id = re.search("'/deposits/details/(.+?)'", row.find('button', class_='szczegoly1')['onclick']).group(1)
+        deposit_id = re.search("'/deposits/details/(.+?)'", row.find('button', class_='szczegoly1')['onclick']).group(1)
 
-    cols = row.find_all_next('div', class_="inner", limit=5)
-    # print("Columns: ", cols)
+        cols = row.find_all_next('div', class_="inner", limit=5)
+        # print("Columns: ", cols)
 
-    name = cols[0].get_text(strip=True)
-    time = cols[1].get_text(strip=True)
-    ends = dateutil.parser.parse(cols[2].get_text(strip=True))
-    apr = cols[3].get_text(strip=True)
-    amount = Money.Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
+        name = cols[0].get_text(strip=True)
+        time = cols[1].get_text(strip=True)
+        ends = dateutil.parser.parse(cols[2].get_text(strip=True))
+        apr = cols[3].get_text(strip=True)
+        amount = Money.Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
 
-    print("Active deposit '%s' name '%s' @ '%s' for '%s' elapses @ '%s' amount '%s'" % ( deposit_id, name, apr, time, ends, amount))
+        print("Active deposit '%s' name '%s' @ '%s' for '%s' elapses @ '%s' amount '%s'" % ( deposit_id, name, apr, time, ends, amount))
     
-    active_deposits[str(deposit_id)] = {
-        'name': name,
-        'time': time,
-        'ends': ends,
-        'apr': apr,
-        'amount': amount
-    }
+        active_deposits[str(deposit_id)] = {
+            'name': name,
+            'time': time,
+            'ends': ends,
+            'apr': apr,
+            'amount': amount
+            }
 
-
+if len(active_deposits.keys()) == 0:
+    print("No active deposits")
+    
 #
 # Check whether we have any available funds
 #
