@@ -18,7 +18,6 @@
 
 # Reference: http://robertmuth.blogspot.com/2012/08/better-bash-scripting-in-15-minutes.html
 set -o nounset 
-set -o errexit
 
 #
 # Configuration
