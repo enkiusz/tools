@@ -8,13 +8,23 @@ r = requests.get('https://developers.google.com/speed/libraries/devguide')
 if r.status_code != 200:
     print("Error downloading library list page, status_code='%d'" % (r.status_code))
 
+static_versions = {
+    'angularjs': [
+        '1.1.5' # Reference: http://mailinator.com/inbox.jsp?to=test
+        ],
+    }
 soup = BeautifulSoup(r.text)
 for lib_div in soup.find('h1', id='Libraries').find_next_siblings('div'):
     lib_id = lib_div['id']
 
-    versions = list()
+    versions = set()
+    try:
+        versions = set(static_versions[lib_id])
+    except KeyError:
+        pass
     for version_span in lib_div.find_all('span', class_='versions'):
-        versions.extend( [ tag.strip(string.whitespace) for tag in version_span.get_text().split(',') ] )
+        for tag in version_span.get_text().split(','):
+            versions.add(tag.strip(string.whitespace))
 
     # Search for one of the versions in the snippet to determine paths we need to download
     refs = list()
