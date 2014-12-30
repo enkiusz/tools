@@ -38,9 +38,11 @@ login = None
 
 parser = OptionParser()
 parser.add_option('-l', '--login', dest='login', help='Use LOGIN as the login name', metavar='LOGIN')
+parser.add_option('-d', '--keepass-db', dest='keepass_db', help='Use KEEPASS_DB Keepass database file as a source for credentials', metavar='KEEPASS_DB')
 
 (options, args) = parser.parse_args()
 login = options.login
+password = None
 
 if login is None:
     print('Login is required')
@@ -49,7 +51,41 @@ if login is None:
 def amount_prepare(s):
     return s.strip().translate({ord(' '): None}).replace(',', '.')
 
-password = getpass.getpass("Enter password for login '%s' used to access URL '%s': " % (login, base_url))
+if options.keepass_db is not None:
+    try:
+        from kppy.database import KPDBv1
+        from kppy.groups import v1Group
+        from kppy.exceptions import KPError
+
+        keepass_password = getpass.getpass("Enter password to unlock Keepass database '%s': " % (options.keepass_db))
+        db = KPDBv1(options.keepass_db, keepass_password, read_only=True)
+        db.load()
+        print("Loaded Keepass database with '%d' entries" % ( len(db.entries) ))
+
+        for entry in db.entries:
+            # Skip entries in the "Backup" group
+            if entry.group.title == "Backup":
+                continue
+
+            if options.login == entry.username:
+                password = entry.password
+
+    except ImportError as err:
+        print("Cannot load Keepass support, do you have the 'kppy' module installed?")
+
+    except KPError as err:
+        print("Keepass module encountered an error: ", err)
+
+    finally:
+        try:
+            db.close()
+            del db
+        except:
+            pass
+
+
+if password is None:
+    password = getpass.getpass("Enter password for login '%s' used to access URL '%s': " % (login, base_url))
 
 #
 # Establish session
