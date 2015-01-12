@@ -2,7 +2,7 @@
 
 output_connected() {
     OUTPUT="$1"; shift
-    xrandr --query | grep '^VGA-1' | awk '{print $2;}'
+    xrandr --query | grep "^$OUTPUT" | awk '{print $2;}'
 }
 
 # Setup dual monitor setup
