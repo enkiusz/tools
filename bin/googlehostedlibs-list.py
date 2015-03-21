@@ -14,7 +14,7 @@ static_versions = {
         ],
     }
 soup = BeautifulSoup(r.text)
-for lib_div in soup.find('h1', id='Libraries').find_next_siblings('div'):
+for lib_div in soup.find('h1', id='libraries').find_next_siblings('div'):
     lib_id = lib_div['id']
 
     versions = set()
@@ -40,4 +40,4 @@ for lib_div in soup.find('h1', id='Libraries').find_next_siblings('div'):
 
     for ref in refs:
         for version in versions:
-            print('https:%s' % ( ref % ( version ) ))
+            print('%s' % ( ref % ( version ) ))

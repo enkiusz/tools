@@ -31,4 +31,3 @@ done | xargs curl --silent  --show-error --remote-time --resolve "$ajax_host:$aj
 # Make the files readable by the world
 find "$MIRROR_ROOT" -type f | xargs chmod a+r
 find "$MIRROR_ROOT" -type d | xargs chmod a+rx
-
