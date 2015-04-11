@@ -1,0 +1,170 @@
+#!/usr/bin/env ruby
+# coding: utf-8
+
+argv0="hdd-surv"
+require 'optparse'
+options = {
+  platter_size: "3.5''",
+  rotation_rate: 'Nieznana',
+  buffer_size: 'Nieznany',
+  wipe: 0,
+  badblocks: 0,
+}
+
+optparse = OptionParser.new do|opts|
+   # Set a banner, displayed at the top
+   # of the help screen.
+   opts.banner = "Usage: #{argv0} [options] device1 device2"
+ 
+   # Define the options, and what they do
+   options[:verbose] = false
+   opts.on( '-v', '--verbose', 'Output more information' ) do
+     options[:verbose] = true
+   end
+ 
+   options[:iface_type] = nil
+   opts.on( '--iface IFACE', 'Set hard disk interface type to IFACE (ie. PATA, SATA, SAS, etc.). This is just for descriptive purposes.' ) do |iface_type|
+     options[:iface_type] = iface_type
+   end
+   
+   options[:rotation_rate] = nil
+   opts.on( '--rotation-rate RATE', 'Set hard disk RPM' ) do |rate|
+     options[:rotation_rate] = rate
+   end
+   
+   options[:buffer_size] = nil
+   opts.on( '--buffer-size SIZE', 'Set hard disk buffer size to SIZE MB' ) do |size|
+     options[:buffer_size] = size
+   end
+
+   options[:price] = nil
+   opts.on( '--price PRICE', 'Set price to PRICE [PLN]' ) do |price|
+     options[:price] = price
+   end
+   
+   options[:wipe] = 0
+   opts.on( '--wipe', 'Wipe drive contents' ) do
+     options[:wipe] = 1
+   end
+
+   options[:badblocks] = 0
+   opts.on( '--badblocks', 'Check drive using badblocks' ) do
+     options[:badblocks] = 1
+   end
+
+   # This displays the help screen, all programs are
+   # assumed to have this option.
+   opts.on( '-h', '--help', 'Display this screen' ) do
+     puts opts
+     exit
+   end
+ end
+ 
+ optparse.parse!
+ 
+ ARGV.each do |dev|
+  puts "Surveying HDD #{dev}"
+  model_family = model = serial_number = capacity = ''
+  # By default we assume that SMART is not available
+  smart_supported = 'Unavailable'
+  smart_enabled = 'Disabled'
+  
+  smart_data = `LC_ALL=C sudo smartctl -x "#{dev}"`
+  smart_data.split(/\n/).keep_if { |line| /^SMART support is:|^Model Family:|^Device Model:|^Serial Number:|^User Capacity:/.match(line) }.each do |line|
+    if /^SMART support is:\s+(.+)/.match(line)
+      value = $1
+      if /(Enabled|Disabled)/.match(value)
+        smart_enabled = $1
+      elsif /(Available|Unavailable)/.match(value)
+        smart_supported = $1
+      end
+    end
+    if /^Model Family:\s+(.+)/.match(line)
+      model_family = $1
+    end
+    if /^Device Model:\s+(.+)/.match(line)
+      model = $1
+    end
+    if /^Serial Number:\s+(.+)/.match(line)
+      serial_number = $1
+    end
+    if /^User Capacity:.+\[(.+) GB\]/.match(line)
+      capacity = "#{$1.to_i}"
+    end
+  end
+  puts "family='#{model_family}' model='#{model}' serial='#{serial_number} capacity='#{capacity} GB'"
+  puts "smart_supported='#{smart_supported}' smart_enabled='#{smart_enabled}'"
+
+  if model_family == '' and model == '' and serial_number == ''
+    puts "Could not detect basic drive data, aborting"
+    next
+  end
+  
+  if smart_supported == "Available" and smart_enabled == "Disabled" # Enable SMART and rescan device if SMART was disabled
+    puts "SMART is supported but disabled, enabling SMART on device '#{dev}'"
+    system("sudo smartctl -s on '#{dev}'")
+    smart_data = `LC_ALL=C sudo smartctl -x "#{dev}"`
+  end
+
+  # Run SMART short test
+  #puts "Running short SMART test on device '#{dev}'"
+  #system("sudo smartctl -t short '#{dev}'")
+
+  dir = "hdd-#{model}-#{serial_number}-#{capacity}GB"
+  if not Dir.exist?(dir)
+    Dir.mkdir(dir)
+  else
+    puts "Survey directory for this hard disk ('#{dir}') already exists. Aborting."
+    Process.exit(1)
+  end
+  smart_data_filename = File.join(dir, "smart-data")
+  puts "Dumping smartctl data to '#{smart_data_filename}'"
+  smart_data_file = File.open(smart_data_filename, "w+")
+  smart_data_file.write(smart_data)
+  smart_data_file.close()
+
+  if options[:badblocks] == 1
+    badblocks_filename = File.join(dir, "badblocks")
+    puts "Dumping bad block info to '#{badblocks_filename}"
+    # Options: Test until a single bad block is found, use a random pattern
+    if options[:wipe] == 1
+      # Options: Destructive write test (first write pattern then read it back and compare)
+      puts "Running destructive write test"
+      system "sudo badblocks -e 1 -sv -w -t random '#{dev}'"
+    else
+    # Options: Non-destructive read-write test (first write pattern then read it back and compare)
+      puts "Running non-destructive read-write test"
+      system "sudo badblocks -e 1 -sv -n -t random '#{dev}'"
+    end
+    # TODO check if hard disk had bad blocks and MARK
+  end
+
+  if options[:wipe] == 1 and options[:badblocks] == 0
+    # Need a special wipe pass using dd
+    puts "Filling drive '#{dev}' with zeros"
+    system "sudo sh -c 'cat /dev/zero | pv -s #{capacity}g | dd of=#{dev} bs=128k oflag=sync'"
+  end
+  
+  auction_filename = File.join(dir, "auction.org")
+  puts "Generating auction description in '#{auction_filename}'"
+  auction_file = File.open(auction_filename, "w+")
+  auction_file.puts("#+TITLE: " + ["HDD", model_family, model, capacity+'GB', options[:iface_type]].join(' '))
+  auction_file.puts("#+BUFFER_SIZE: #{options[:buffer_size]} MB")
+  auction_file.puts("#+ROTATIONAL_RATE: #{options[:rotation_rate]} RPM")
+  auction_file.puts("#+PRICE: #{options[:price]} PLN")
+  auction_file.puts("\n")
+  auction_file.puts("<p>Oferuję używany dysk #{model_family} #{model} o pojemności #{capacity} GB</p>")
+  auction_file.puts("<br>\n")
+  auction_file.puts("<p>Rozmiar talerza: #{options[:platter_size]}</p>")
+  auction_file.puts("<p>Interfejs: #{options[:iface_type]}</p>")
+  auction_file.puts("<br>\n")
+  auction_file.puts("<p>Dysk jest sprawny, nie ma bad sectorów.</p>")
+  auction_file.puts("<br>\n")
+  auction_file.puts("<p>Stan wizualny widoczny jest na zdjęciu.</p>")
+  auction_file.puts("<br>\n")
+  auction_file.puts("<p>Zrzut danych SMART:</p>")
+  auction_file.puts("<pre><span style='font-family: Courier New, Courier, monospaced;'>")
+  auction_file.puts(smart_data)
+  auction_file.puts("</span></pre>")
+  auction_file.close()
+end
