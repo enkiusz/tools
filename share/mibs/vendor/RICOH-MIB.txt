@@ -1,0 +1,184 @@
+-- The MIT License (MIT)
+
+-- Copyright (c) 2015 Maciej Grela <enki@fsck.pl>
+
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+
+RICOH-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, TEXTUAL-CONVENTION, enterprises FROM SNMPv2-SMI;
+
+    ricoh MODULE-IDENTITY
+    	LAST-UPDATED "201505110000Z"
+    	CONTACT-INFO
+		"email: enki@fsck.pl"
+	DESCRIPTION
+	    "Printer history"
+	REVISION     "201505110000Z"
+    	DESCRIPTION
+	    "First draft"
+    ::= { enterprises 367 }
+
+
+JobState ::= TEXTUAL-CONVENTION
+    STATUS	current
+    DESCRIPTION
+	"Represents a job state code."
+    SYNTAX	INTEGER { completed(1), processing(6), canceled(8) }
+
+ricohTables	OBJECT IDENTIFIER ::= { ricoh 3 2 1 3 2 1 }
+
+ricohJobTable	OBJECT-TYPE
+    SYNTAX	SEQUENCE OF RicohJobTableEntry
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"This table contains entries for last 50 printed jobs"
+    ::= { ricohTables 1 }
+
+ricohJobTableEntry	OBJECT-TYPE
+    SYNTAX	RicohJobTableEntry
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"This row describes a single printed job"
+    ::= { ricohJobTable 1 }
+
+RicohJobTableEntry ::= SEQUENCE {
+	ricohJobUnk1			OCTET STRING, 	-- always an empty string
+	ricohJobUserId			OCTET STRING, 
+	ricohJobFilename		OCTET STRING, 
+	ricohJobUnk2			OCTET STRING, 	-- always an empty string
+	ricohJobPages			OCTET STRING,
+	ricohJobId			OCTET STRING,
+	ricohJobTimestamp		OCTET STRING,
+	ricohJobAuthenticationInfo	OCTET STRING,
+	ricohJobStateText		OCTET STRING,
+	ricohJobState			JobState,
+	ricohJobUnk3			INTEGER,	-- always 0
+	ricohJobUnk4			INTEGER		-- always 0
+}
+
+
+ricohJobUnk1 OBJECT-TYPE
+    SYNTAX	OCTET STRING
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The meaning of this field is unknown"
+    ::= { ricohJobTableEntry 2 }
+
+ricohJobUserId OBJECT-TYPE
+    SYNTAX	OCTET STRING
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The user identifier of the person who sent the ricohJob"
+    ::= { ricohJobTableEntry 3 }
+
+ricohJobFilename OBJECT-TYPE
+    SYNTAX	OCTET STRING
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The name of the file sent to the printer"
+    ::= { ricohJobTableEntry 4 }
+
+ricohJobUnk2 OBJECT-TYPE
+    SYNTAX	OCTET STRING
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The meaning of this field is unknown"
+    ::= { ricohJobTableEntry 5 }
+
+ricohJobPages OBJECT-TYPE
+    SYNTAX	OCTET STRING
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The number of processed and printed pages, the format is: proc=<x>,prt=<y> 
+	where <x> is the amount of pages sent into the printer and <y> is the amount of pages printed.
+	Usually <y> = <x> * amount_of_requested_copies
+	<y> is 0 when the ricohJob is still in the 'Processing' state.
+	"
+    ::= { ricohJobTableEntry 6 }
+
+ricohJobId OBJECT-TYPE
+    SYNTAX	OCTET STRING
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The identifiers of a particular ricohJob. The format is: pid=<x>,submit=<uid>,recv=<y> 
+	where <x> and <y> are ricohJob sequence IDs and <uid> is the ricohJob unique ID or the string '(NONE)' when using Mac OSX"
+    ::= { ricohJobTableEntry 7 }
+
+ricohJobTimestamp OBJECT-TYPE
+    SYNTAX	OCTET STRING
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The timestamp of ricohJob submission. The format is YYMMDDHHMMZ in GMT.
+	Note: This value is 'xx' when printing from Mac OSX"
+    ::= { ricohJobTableEntry 8 }
+
+ricohJobAuthenticationInfo OBJECT-TYPE
+    SYNTAX	OCTET STRING
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The authentication info used to submit a ricohJob. The format is: username=<user>,hostloginname=<login>
+	Notes: <login> is not always present, for example when using Mac OSX"
+    ::= { ricohJobTableEntry 9 }
+
+ricohJobStateText OBJECT-TYPE
+    SYNTAX	OCTET STRING
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The ricohJob state description. The language used is dependent on the printer UI locale."
+    ::= { ricohJobTableEntry 10 }
+
+
+ricohJobState OBJECT-TYPE
+    SYNTAX	JobState
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The ricohJob state code."
+    ::= { ricohJobTableEntry 11 }
+
+ricohJobUnk3 OBJECT-TYPE
+    SYNTAX	INTEGER
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The meaning of this field is unknown"
+    ::= { ricohJobTableEntry 12 }
+
+ricohJobUnk4 OBJECT-TYPE
+    SYNTAX	INTEGER
+    MAX-ACCESS	not-accessible
+    STATUS	current
+    DESCRIPTION
+	"The meaning of this field is unknown"
+    ::= { ricohJobTableEntry 13 }
+
+END
