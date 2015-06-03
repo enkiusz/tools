@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 # The MIT License (MIT)
 
@@ -60,6 +61,9 @@ DBI.connect('dbi:SQLite3:print_jobs.sqlite') { |dbh|
                'ricohJobUnk4'
               ]) do |unk1, user_id, filename, unk2, pages, job_id, ts, auth_info, state_text, state, unk3, unk4|
       # puts "Found job: user='#{user_id.value}' filename='#{filename.value}' pages='#{pages.value}' auth_info='#{auth_info.value}' job_id='#{job_id.value}' ts='#{ts.value}' state='#{state.value}'"
+
+      # Skip empty slots
+      if state.value == 0 then next end
 
       # Determine unique job ID, first try to extract from the 
       uid = job_id.value.split(',').select { |kvp| /^submit=/.match(kvp) }.first
