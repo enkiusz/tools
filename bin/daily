@@ -19,11 +19,6 @@
 # Reference: http://robertmuth.blogspot.com/2012/08/better-bash-scripting-in-15-minutes.html
 set -o nounset 
 
-#
-# Configuration
-#
-readonly DUREP_DIR="/var/cache/durep-scans"
-
 # Reference: http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/x405.html
 # Reference: https://en.wikipedia.org/wiki/Tput
 title() {
@@ -44,7 +39,7 @@ job "Downloading main portage repo" emerge --sync --quiet
 which layman && job "Downloading layman overlays" layman -S
 job "Regenrating portage caches" emerge --regen --quiet
 job "Updating packages (pass 1)" emerge --quiet --backtrack=30 --update --deep --newuse --keep-going=y world
-job "Updating package mask, keywords and use flags" etc-update --automode -5 /etc/portage/package.keywords /etc/portage/package.use /etc/portage/package.unmask/diffmask
+job "Updating package mask, keywords and use flags" etc-update --automode -5 /etc/portage/package.keywords /etc/portage/package.use /etc/portage/package.unmask/diffmask /etc/portage/package.use/zzzz-portage-autounmask
 job "Updating packages (pass 2)" emerge --quiet --backtrack=30 --update --deep --newuse --keep-going=y world
 job "Rebuilding preseved libs" emerge --quiet @preserved-rebuild
 job "Rebuilding reverse dependencies" revdep-rebuild -- --quiet --keep-going=y
@@ -57,12 +52,6 @@ which eix-update && job "Updating ebuild search index" eix-update
 which diffmask && job "Updating diffmask" diffmask -u
 which localepurge && job "Purging unneeded locale files" localepurge
 which pfl && job "Contributing data to Portage File Library" pfl
-
-if which durep; then
-    [ -d "$DUREP_DIR" ] || mkdir -p "$DUREP_DIR"
-    job "Updating disk usage report" durep -q -sf "$DUREP_DIR/latest" -ep '"/proc/|/sys/|/dev/"' /
-fi
-
 job "Updating shell environment files" env-update
 
 which systemctl && job "Reloading systemd units" systemctl daemon-reload
