@@ -1,8 +1,0 @@
-#!/bin/sh
-
-MONITOR="dev:/dev/i2c-1"
-
-# Set input to "Digital"
-ddccontrol -r 0x60 -w 3 "$MONITOR"
-# Autoadjust image
-ddccontrol -r 0x1e -w 1 "$MONITOR"

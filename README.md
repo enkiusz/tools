@@ -7,15 +7,6 @@ Here is a bunch of scripts that I use more or less often:
 * bin/daily - A Gentoo maintenance script run daily on my machine
 * bin/dwmstatus - The status command I used when I had dwm
 
-## Poor man's docking intelligence
-* bin/audio_dock - Command pulseaudio to route output to a Dell D630 docking station
-* bin/audio_spkrs - Command pulseaudio to route output to the headphone/speaker output of a Dell D630 laptop
-* bin/docked - Script run when a Dell D630 laptop got docked to remap video output for two external monitors
-* bin/undocked - Script run when a Dell D630 laptop gets undocked to remap video output to the internal LCD panel
-* bin/update-state - Script running the 'docked' or 'undocked' script depending on the Dell D630 laptop docked state
-* bin/monitor_dvi - Switch a Samsung SyncMaster 173P Plus monitor to the "DVI" input source
-* bin/monitor_vga - Switch a Samsung SyncMaster 173P Plus monitor to the "VGA" input source
-
 ## Various
 * bin/envunpack - Unpacks /proc/${PID}/environ files. Try 'cat /proc/self/environ | envunpack'
 * bin/hdd-surv - A HDD survey script for internet auctions
