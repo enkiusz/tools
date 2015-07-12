@@ -20,6 +20,7 @@ Here is a bunch of scripts that I use more or less often:
 
 ## Internet banking
 
+* bin/ideabank.py - Fetch the account balances from your http://www.ideabank.pl/ internet banking account
 * bin/ideabank-pingpong.py - Create a PING-PONG one day deposit on your http://www.ideabank.pl/ internet banking account
 * bin/banksmart.rb - Fetch the account balances from your http://www.banksmart.pl/ internet banking account
 
