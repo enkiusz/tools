@@ -246,7 +246,7 @@ for account_id, account in accounts.items():
             continue
 
     # Other useful params
-    deposit_data['amount'] = account['avail_funds'].amount
+    deposit_data['amount'] = min( account['avail_funds'], Money.Money(amount='20000') ).amount # The oneday deposit has a limit of 20k PLN
     deposit_data['nrb_out'] = account_id
 
     # Other crap params
