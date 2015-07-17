@@ -180,11 +180,6 @@ for login in args:
     #
     for account_id, account in accounts.items():
 
-        if account['balance_pln'] <= Money.Money(amount=0, currency='PLN'):
-            continue
-
-        print("Account '%s' contains funds to create a oneday deposit" % ( account_id ))
-
         #
         # Fetch the list of available deposits
         #
@@ -201,10 +196,18 @@ for login in args:
             deposit_id = re.search("'/deposits/newDeposit/(.+?)'", deposit_img['onclick']).group(1)
             name = deposit_img['title']
 
-            print("Available deposit '%s' name '%s'" % (deposit_id, name))
+            amount_min_info = row.find(text=re.compile('^Kwota min'))
+            amount_min = Money.Money(amount=re.match('Kwota min.:(\d+)', amount_min_info).group(1) )
+
+            amount_max_info = row.find(text=re.compile('^Kwota max'))
+            amount_max = Money.Money(amount=re.match('Kwota max.:(\d+)', amount_max_info).group(1) )
+
+            print("Available deposit '%s' name '%s' (min amount '%s' max amount '%s'" % (deposit_id, name, amount_min, amount_max))
 
             avail_deposits[deposit_id] = {
-                'name': name
+                'name': name,
+                'amount_min': amount_min,
+                'amount_max': amount_max
             }
 
         # print("Account table: ", account_table)
@@ -220,6 +223,11 @@ for login in args:
             continue
 
         print("Pingpong deposit found with id '%s'" % ( pingpong_deposit_id ))
+        pingpong_deposit = avail_deposits[pingpong_deposit_id]
+
+        if deposit['amount_min'] > account['avail_funds']:
+            print("Amount '%s' not enough to create a PING-PONG deposit, required at least '%s'" % ( account['avail_funds'], deposit['amount_min'] ))
+            continue
 
         deposit_url = urljoin(base_url, '/deposits/newDeposit/%s' % (pingpong_deposit_id))
 
@@ -239,7 +247,7 @@ for login in args:
                 continue
 
         # Other useful params
-        deposit_data['amount'] = min( account['avail_funds'], Money.Money(amount='20000') ).amount # The oneday deposit has a limit of 20k PLN
+        deposit_data['amount'] = min( account['avail_funds'], deposit['amount_max'] ).amount
         deposit_data['nrb_out'] = account_id
 
         # Other crap params
