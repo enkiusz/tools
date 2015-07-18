@@ -225,8 +225,8 @@ for login in args:
         print("Pingpong deposit found with id '%s'" % ( pingpong_deposit_id ))
         pingpong_deposit = avail_deposits[pingpong_deposit_id]
 
-        if deposit['amount_min'] > account['avail_funds']:
-            print("Amount '%s' not enough to create a PING-PONG deposit, required at least '%s'" % ( account['avail_funds'], deposit['amount_min'] ))
+        if pingpong_deposit['amount_min'] > account['avail_funds']:
+            print("Amount '%s' not enough to create a PING-PONG deposit, required at least '%s'" % ( account['avail_funds'], pingpong_deposit['amount_min'] ))
             continue
 
         deposit_url = urljoin(base_url, '/deposits/newDeposit/%s' % (pingpong_deposit_id))
@@ -239,15 +239,13 @@ for login in args:
 
         deposit_data = {}
         for input in soup.find_all('input'):
-            # print("Input: ", input)
-
             try:
                 deposit_data[input['name']] = input['value']
             except KeyError:
                 continue
 
         # Other useful params
-        deposit_data['amount'] = min( account['avail_funds'], deposit['amount_max'] ).amount
+        deposit_data['amount'] = min( account['avail_funds'], pingpong_deposit['amount_max'] ).amount
         deposit_data['nrb_out'] = account_id
 
         # Other crap params
