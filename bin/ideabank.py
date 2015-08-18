@@ -19,9 +19,10 @@
 from bs4 import BeautifulSoup
 import requests, re, sys, getpass, datetime, dateutil.parser
 
+# Use money namespace from https://pypi.python.org/pypi/money/
+# *NOT* from https://pypi.python.org/pypi/python-money/
 from decimal import Decimal
 from money import Money
-Money.set_default_currency('PLN')
 
 from optparse import OptionParser
 from urllib.parse import urljoin
@@ -128,9 +129,9 @@ for login in options.login:
                 continue
         
             currency_code = cols[1].get_text(strip=True)
-            balance = Money.Money(amount=amount_prepare(cols[2].get_text()), currency=currency_code)
-            avail_funds = Money.Money(amount=amount_prepare(cols[3].get_text()), currency=currency_code)
-            balance_pln = Money.Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
+            balance = Money(amount=amount_prepare(cols[2].get_text()), currency=currency_code)
+            avail_funds = Money(amount=amount_prepare(cols[3].get_text()), currency=currency_code)
+            balance_pln = Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
 
             print("Found account '%s' with currency '%s' with balance '%s' ('%s') and available funds '%s'" % (account_id, currency_code, balance, balance_pln, avail_funds))
             accounts[account_id] = {
@@ -166,7 +167,7 @@ for login in options.login:
             time = cols[1].get_text(strip=True)
             ends = dateutil.parser.parse(cols[2].get_text(strip=True))
             apr = cols[3].get_text(strip=True)
-            amount = Money.Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
+            amount = Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
 
             print("Active deposit '%s' name '%s' @ '%s' for '%s' elapses @ '%s' amount '%s'" % ( deposit_id, name, apr, time, ends, amount))
     
@@ -216,6 +217,6 @@ del keepass_db
 #         time = cols[1].get_text(strip=True)
 #         ends = cols[2].get_text(strip=True)
 #         apr = cols[3].get_text(strip=True)
-#         amount = Money.Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
+#         amount = Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
 #         print("Pending deposit '%s' @ '%s'  for '%s' elapses @ '%s' requested '%s'" % ( deposit_name, apr, time, ends, amount))
 

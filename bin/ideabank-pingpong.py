@@ -19,9 +19,10 @@
 from bs4 import BeautifulSoup
 import requests, re, sys, getpass, datetime, dateutil.parser
 
+# Use money namespace from https://pypi.python.org/pypi/money/
+# *NOT* from https://pypi.python.org/pypi/python-money/
 from decimal import Decimal
 from money import Money
-Money.set_default_currency('PLN')
 
 from optparse import OptionParser
 from urllib.parse import urljoin
@@ -122,9 +123,9 @@ for login in args:
                 continue
 
             currency_code = cols[1].get_text(strip=True)
-            balance = Money.Money(amount=amount_prepare(cols[2].get_text()), currency=currency_code)
-            avail_funds = Money.Money(amount=amount_prepare(cols[3].get_text()), currency=currency_code)
-            balance_pln = Money.Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
+            balance = Money(amount=amount_prepare(cols[2].get_text()), currency=currency_code)
+            avail_funds = Money(amount=amount_prepare(cols[3].get_text()), currency=currency_code)
+            balance_pln = Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
 
             print("Found account '%s' with currency '%s' with balance '%s' ('%s') and available funds '%s'" % (account_id, currency_code, balance, balance_pln, avail_funds))
             accounts[account_id] = {
@@ -160,7 +161,7 @@ for login in args:
             time = cols[1].get_text(strip=True)
             ends = dateutil.parser.parse(cols[2].get_text(strip=True))
             apr = cols[3].get_text(strip=True)
-            amount = Money.Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
+            amount = Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
 
             print("Active deposit '%s' name '%s' @ '%s' for '%s' elapses @ '%s' amount '%s'" % ( deposit_id, name, apr, time, ends, amount))
 
@@ -197,14 +198,15 @@ for login in args:
             name = deposit_img['title']
 
             amount_min_info = row.find(text=re.compile('^Kwota min'))
-            amount_min = Money.Money(amount=re.match('Kwota min.:(\d+)', amount_min_info).group(1) )
+            amount_min = Money(amount=re.match('Kwota min.:(\d+)', amount_min_info).group(1), currency='PLN' )
 
             amount_max_info = row.find(text=re.compile('^Kwota max'))
-            amount_max = Money.Money(amount=re.match('Kwota max.:(\d+)', amount_max_info).group(1) )
+            amount_max = Money(amount=re.match('Kwota max.:(\d+)', amount_max_info).group(1), currency='PLN' )
 
             print("Available deposit '%s' name '%s' (min amount '%s' max amount '%s'" % (deposit_id, name, amount_min, amount_max))
 
-            avail_deposits[deposit_id] = {
+            avail_deposits[name] = {
+                'id': deposit_id,
                 'name': name,
                 'amount_min': amount_min,
                 'amount_max': amount_max
@@ -212,24 +214,17 @@ for login in args:
 
         # print("Account table: ", account_table)
 
-        pingpong_deposit_id = None
-
-        for deposit_id, deposit in avail_deposits.items():
-            if deposit['name'] == 'Lokata PING PONG':
-                pingpong_deposit_id = deposit_id
-
-        if pingpong_deposit_id is None:
+        try:
+            pingpong_deposit = avail_deposits['Lokata PING PONG']
+        except KeyError:
             print("No pingpong deposit available, skipping account")
             continue
-
-        print("Pingpong deposit found with id '%s'" % ( pingpong_deposit_id ))
-        pingpong_deposit = avail_deposits[pingpong_deposit_id]
 
         if pingpong_deposit['amount_min'] > account['avail_funds']:
             print("Amount '%s' not enough to create a PING-PONG deposit, required at least '%s'" % ( account['avail_funds'], pingpong_deposit['amount_min'] ))
             continue
 
-        deposit_url = urljoin(base_url, '/deposits/newDeposit/%s' % (pingpong_deposit_id))
+        deposit_url = urljoin(base_url, '/deposits/newDeposit/%s' % (pingpong_deposit['id']))
 
         deposit_create_req = session.post(deposit_url)
         # print("Deposit create html: ", deposit_create_req.text)
@@ -319,7 +314,7 @@ for login in args:
     #         time = cols[1].get_text(strip=True)
     #         ends = cols[2].get_text(strip=True)
     #         apr = cols[3].get_text(strip=True)
-    #         amount = Money.Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
+    #         amount = Money(amount=amount_prepare(cols[4].get_text()), currency='PLN')
     #         print("Pending deposit '%s' @ '%s'  for '%s' elapses @ '%s' requested '%s'" % ( deposit_name, apr, time, ends, amount))
 
 try:
