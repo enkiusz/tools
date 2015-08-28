@@ -192,10 +192,14 @@ for login in args:
         for row in soup.find('div', id='actions').find('table', id='selectStructure').find_all('tr'):
             # print("Available deposit: ", row)
 
-            deposit_img = row.find('img')
+            deposit_button = row.find("input")
+            deposit_id = re.search("'/deposits/newDeposit/(.+?)'", deposit_button['onclick']).group(1)
 
-            deposit_id = re.search("'/deposits/newDeposit/(.+?)'", deposit_img['onclick']).group(1)
-            name = deposit_img['title']
+            deposit_img = row.find('img')
+            if deposit_img is not None:
+                name = deposit_img['title']
+            else:
+                name = row.find("td").get_text(strip=True)
 
             amount_min_info = row.find(text=re.compile('^Kwota min'))
             amount_min = Money(amount=re.match('Kwota min.:(\d+)', amount_min_info).group(1), currency='PLN' )
