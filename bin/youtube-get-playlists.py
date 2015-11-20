@@ -16,7 +16,7 @@ sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 from apiclient.discovery import build
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
-from oauth2client.tools import run
+from oauth2client.tools import run_flow
 
 
 # The CLIENT_SECRETS_FILE variable specifies the name of a file that contains
@@ -67,7 +67,7 @@ storage = Storage( os.path.join(os.getenv('OAUTH2_TOKEN_DIR', '.'), "%s-oauth2.j
 credentials = storage.get()
 
 if credentials is None or credentials.invalid:
-  credentials = run(flow, storage)
+  credentials = run_flow(flow, storage)
 
 
 youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION,
