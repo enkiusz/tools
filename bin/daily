@@ -55,3 +55,4 @@ which pfl && job "Contributing data to Portage File Library" pfl
 job "Updating shell environment files" env-update
 
 which systemctl && job "Reloading systemd units" systemctl daemon-reload
+which systemctl && job "Reexecuting systemd" systemctl daemon-reexec
