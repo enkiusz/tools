@@ -10,6 +10,7 @@ Here is a bunch of scripts that I use more or less often:
 ## Various
 * bin/envunpack - Unpacks /proc/${PID}/environ files. Try 'cat /proc/self/environ | envunpack'
 * bin/hdd-surv - A HDD survey script for internet auctions
+* bin/unwrap - Recursively unpack containers. That is, if there are other container files inside they will also be unpacked.
 
 ## Googlefoo
 * bin/googlehostedlibs-fetch.sh - Make a local mirror of all the libraries hosted on https://developers.google.com/speed/libraries/devguide for improved privacy

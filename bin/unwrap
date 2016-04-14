@@ -1,0 +1,74 @@
+#!/bin/bash
+
+#%unwrap Unwrap is a Unpack Wrapper version 1.1
+#%
+#%Recursively unpack containers. That is, if there are other container files inside they will also be unpacked.
+#%Supported container formats (package requirements apply)
+#%- zipfiles (.zip) -> requires 'unzip'
+#%- gzipped and pure tarballs (.tar, .tgz, .tar.gz) -> requires 'tar'
+#%- xz packed tarballs (.tar.xz) -> requires 'tar' and 'xz'
+#%- jar files -> requires 'unzip'
+#%- rar archives -> requires 'unrar'
+#%- 7z archives -> requires '7z'
+#%
+#%Usage: unwrap [-C <destdir>] [-v] [-x] [-h] <container_1> <container_2> ... <container_n>
+#%
+#%Available command line switches:
+#%-C <destdir>  - unwrap to directory <destdir> instead of the current directory
+#%-v            - increase verbosity
+#%-x            - remove container after extraction
+#%-h            - this help text
+#%
+#%Author: Maciej Grela <enki@fsck.pl>
+
+DESTDIR="."
+
+while getopts C:vxh opt; do
+    case $opt in 
+        C) destdir="$OPTARG";;
+	v) verbose=1;;
+	x) remove_container=1;;
+	h) grep "^#%" $0 | sed 's/^#%//';;
+        ?) exit 1;;
+    esac
+done
+shift $((OPTIND-1))
+
+while [ "$1" ]; do
+    container="$1"; shift
+
+    # Detect suffix
+    case "$container" in
+	*.zip) suffix=".zip"; unpack_cmd='unzip -d "$unwrap_dir" "$container"';;
+	*.jar) suffix=".jar"; unpack_cmd='unzip -d "$unwrap_dir" "$container"';;
+	*.tar) suffix=".tar"; unpack_cmd='tar -C "$unwrap_dir" -xvf "$container"';;
+	*.tar.gz) suffix=".tar.gz"; unpack_cmd='tar -C "$unwrap_dir" -xzvf "$container"';;
+	*.tar.bz2) suffix=".tar.bz2"; unpack_cmd='tar -C "$unwrap_dir" -xjvf "$container"';;
+	*.tar.xz) suffix=".tar.xz"; unpack_cmd='xz --decompress --stdout "$container" | tar -C "$unwrap_dir" -xv';;
+	*.tgz) suffix=".tgz"; unpack_cmd='tar -C "$unwrap_dir" -xzvf "$container"';;
+	*.tbz2) suffix=".tbz2"; unpack_cmd='tar -C "$unwrap_dir" -xjvf "$container"';;
+	*.rar) suffix=".rar"; unpack_cmd='unrar x "$container" "$unwrap_dir/"';;
+	*.7z) suffix='.7z'; unpack_cmd='7z x -o"$unwrap_dir" "$container"';;
+	*)  # This file is not an container we know, skip
+	    echo "$container: Skipping, not an container type we know"
+	    continue;;
+    esac
+
+    unwrap_dir="$destdir/$(basename "$container" "$suffix")"
+    [ "$verbose" ] && echo "$container: Unwrapping files into '$unwrap_dir'"
+    mkdir -p "$unwrap_dir" && unwrap_dir=$unwrap_dir container=$container eval $unpack_cmd
+
+    # Search for other containers inside the extracted container
+    find "$unwrap_dir" -type f | while read file; do 
+
+	# Optimize this on Cygwin by performing the suffix check now without running the command recursively
+	# fork() on Cygwin is very slow
+
+	case "$file" in
+	    *.zip|*.jar|*.tar|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z)
+		unwrap -C $(dirname "$file") -x "$file";;
+	esac
+    done
+
+    [ "$remove_container" ] && rm "$container"
+done
