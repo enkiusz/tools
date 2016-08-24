@@ -9,7 +9,7 @@ options = {
   buffer_size: 'Nieznany',
   wipe: 0,
   badblocks: 0,
-  iface_type: nil,
+  iface_type: 'Nieznany',
   price: nil,
   verbose: false
 }
@@ -94,6 +94,9 @@ optparse = OptionParser.new do|opts|
     end
     if /^Rotation Rate:\s+(\d+)\s+rpm/.match(line)
       options[:rotation_rate] = $1
+    end
+    if /^SATA Version is:\s+(.+)/.match(line)
+      options[:iface_type] = 'SATA'
     end
     if /^Form Factor:\s+(.+)\s+inches/.match(line)
       options[:platter_size] = $1
