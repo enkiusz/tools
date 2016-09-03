@@ -55,8 +55,9 @@ login = None
 parser = OptionParser()
 parser.add_option('-l', '--login', dest='login', help='Use LOGIN as the login name', metavar='LOGIN')
 parser.add_option('-d', '--keepass-db', dest='keepass_db_file', help='Use KEEPASS_DB Keepass database file as a source for credentials', metavar='KEEPASS_DB')
-parser.add_option('--delete-imported', dest='delete_after_successful_import', action="store_true", help='Delete files that were successfuly imported', default=False)
+parser.add_option('-p', '--passwd-file', dest='password_file', help='Use PASSWORD_FILE to read the password', metavar='PASSWORD_FILE')
 parser.add_option('-n', '--number', dest='upload_batch_size', help='Number of files uploaded in a batch', default=10, metavar='NUMBER')
+parser.add_option('--delete-imported', dest='delete_after_successful_import', action="store_true", help='Delete files that were successfuly imported', default=False)
 
 (options, args) = parser.parse_args()
 
@@ -65,6 +66,9 @@ if login is None:
     print('A wigle.net login is required')
     sys.exit(1)
 
+if options.password_file is not None:
+    password_from_file = open(options.password_file, "rb").read().strip()
+
 keepass_db = None
 if options.keepass_db_file is not None:
     try:
@@ -72,7 +76,11 @@ if options.keepass_db_file is not None:
         from kppy.groups import v1Group
         from kppy.exceptions import KPError
 
-        keepass_password = getpass.getpass("Enter password to unlock Keepass database '%s': " % (options.keepass_db_file))
+        if password_from_file is not None:
+            keepass_password = password_from_file
+        else:
+            keepass_password = getpass.getpass("Enter password to unlock Keepass database '%s': " % (options.keepass_db_file))
+
         keepass_db = KPDBv1(options.keepass_db_file, keepass_password, read_only=True)
         keepass_db.load()
         print("Loaded Keepass database with '%d' entries" % ( len(keepass_db.entries) ))
@@ -88,7 +96,6 @@ def get_secret(login):
     password = None
     if keepass_db is not None:
         for entry in keepass_db.entries:
-            logging.debug(entry)
             # Skip entries in the "Backup" group
             if entry.group.title == "Backup":
                 continue
@@ -96,10 +103,13 @@ def get_secret(login):
             if login == entry.username:
                 password = entry.password
     else:
-        password = getpass.getpass("Enter password for login '%s' used to access URL '%s': " % (login, base_url))
+        if password_from_file is not None:
+            password = password_from_file
+        else:
+            password = getpass.getpass("Enter password for login '%s' used to access URL '%s': " % (login, base_url))
 
+    logging.debug("Password for identity '%s' is '%s'" % (login, password))
     return password
-
 
 session = requests.Session()
 login_resp = session.post(urljoin(base_url,'/api/v1/jsonLogin'), data={ 'credential_0': login , 'credential_1': get_secret(login)} )
@@ -241,7 +251,7 @@ while len(args) > 0:
 
         logging.info("%d transactions from current batch still pending, total %d transactions completed successfuly, total %d transactions failed" % (len(trans_waiting), count_success, count_failure))
 
-        if log.isEnabledFor(logging.INFO):
+        if log.isEnabledFor(logging.DEBUG):
             asciitable.write({
                 'Transid': transids,
                 'Task status': statuses,
