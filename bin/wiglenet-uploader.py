@@ -58,6 +58,7 @@ parser.add_option('-d', '--keepass-db', dest='keepass_db_file', help='Use KEEPAS
 parser.add_option('-p', '--passwd-file', dest='password_file', help='Use PASSWORD_FILE to read the password', metavar='PASSWORD_FILE')
 parser.add_option('-n', '--number', dest='upload_batch_size', help='Number of files uploaded in a batch', default=10, metavar='NUMBER')
 parser.add_option('--delete-imported', dest='delete_after_successful_import', action="store_true", help='Delete files that were successfuly imported', default=False)
+parser.add_option('--rename-imported', dest='suffix_after_successful_import', help='Add SUFFIX to files that were successfuly imported', metavar="SUFFIX")
 
 (options, args) = parser.parse_args()
 
@@ -139,9 +140,14 @@ def handle_completed_upload(summary, src_filename):
 
     if s['failed'] == s['total']: # Mark as failed only if all files have failed to import
         os.rename(src_filename, src_filename + '.failed-import')
-    elif options.delete_after_successful_import: # Import was successful, no failed files
+    # Import was successful, no failed files
+    elif options.delete_after_successful_import:
         logging.info("Deleting source file '%s' with '%d' files successfuly imported ('%d' failures)" % (src_filename, s['completed'], s['failed']))
         os.unlink(src_filename)
+    elif options.suffix_after_successful_import:
+        dst_filename = src_filename + options.suffix_after_successful_import
+        logging.info("Renaming source file '%s' to '%s' with '%d' files successfuly imported ('%d' failures)" % (src_filename, dst_filename, s['completed'], s['failed']))
+        os.rename(src_filename, dst_filename)
 
 count_success = 0
 count_failure = 0
