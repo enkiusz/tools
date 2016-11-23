@@ -45,7 +45,8 @@ from urllib.parse import urljoin
 #
 # Default configuration
 #
-base_url = 'https://wigle.net/'
+base_url = 'https://api.wigle.net/'
+upload_base_url = 'https://wigle.net/'
 login = None
 
 #
@@ -109,20 +110,17 @@ def get_secret(login):
         else:
             password = getpass.getpass("Enter password for login '%s' used to access URL '%s': " % (login, base_url))
 
-    logging.debug("Password for identity '%s' is '%s'" % (login, password))
+    # Dangerous
+    # logging.debug("Password for identity '%s' is '%s'" % (login, password))
     return password
 
 session = requests.Session()
-login_resp = session.post(urljoin(base_url,'/api/v1/jsonLogin'), data={ 'credential_0': login , 'credential_1': get_secret(login)} )
+login_resp = session.post(urljoin(base_url,'/api/v2/login'), data={ 'credential_0': login , 'credential_1': get_secret(login)} )
 login_state = json.loads(login_resp.text)
 
 if not login_state['success']:
     logging.critical("Could not login to '%s' as identity '%s' with message '%s' returned by server" % (base_url, login, login_state['message']))
     sys.exit(1)
-
-
-session_id = int(login_state['session'])
-logging.info("Successfuly authenticated to '%s' as identity '%s', got session id '%d'" % (base_url, login, session_id) )
 
 def popn(l,n):
     rv = []
@@ -172,12 +170,13 @@ while len(args) > 0:
         }
 
         logging.info("Uploading source file '%s' (%d bytes)" % (src_filename, os.stat(src_filename).st_size))
-        upload_resp = session.post(urljoin(base_url, '/upload'), files=[( 'stumblefile', (os.path.basename(src_filename), open(src_filename, 'rb'), 'text/plain') )], data={'observer': login} )
+        upload_resp = session.post(urljoin(upload_base_url, '/upload'), files=[( 'stumblefile', (os.path.basename(src_filename), open(src_filename, 'rb'), 'text/plain') )], data={'observer': login} )
         soup = BeautifulSoup(upload_resp.text)
 
         # Check if we don't have an error
         if soup.find(class_='loginError') is not None:
             error_message = soup.find(class_='loginError').get_text(strip=True)
+
             logging.error("Could not upload '%s', server returned error: '%s'" % (src_filename, error_message))
             os.rename(src_filename, src_filename + '.failed-upload')
             continue
@@ -198,7 +197,7 @@ while len(args) > 0:
     while len(trans_waiting) > 0:
 
         # Get a list of transactions
-        trans_list_result = json.loads(session.get(urljoin(base_url, '/api/v1/jsonTrans'), params={ 'pagestart': 0, 'pageend': 100}).text)
+        trans_list_result = json.loads(session.get(urljoin(base_url, '/api/v2/file/transactions'), params={ 'pagestart': 0, 'pageend': 100}).text)
 
         logging.debug("Current upload processing state:")
         logging.debug(trans_list_result)
@@ -222,21 +221,21 @@ while len(args) > 0:
             # Check if we want to monitor this transaction
             if transid in trans_waiting:
                 status = trans['status']
-                filename = trans['filename']
+                filename = trans['fileName']
                 src_filename = trans_waiting[transid]['source']
 
                 transids.append(transid)
                 filenames.append(filename)
                 statuses.append(status)
-                percentages.append(trans['percentdone'])
-                times.append(trans['timeparsing'])
-                filesizes.append(trans['filesize'])
-                new_wlan_aps.append(trans['discgps'])
-                all_wlan_aps.append(trans['totalgps'])
+                percentages.append(trans['percentDone'])
+                times.append(trans['timeParsing'])
+                filesizes.append(trans['fileSize'])
+                new_wlan_aps.append(trans['genDiscoveredGps'])
+                all_wlan_aps.append(trans['totalGps'])
 
-                if status == "Completed Successfully":
+                if status == "D":
                     logging.info("Processing of '%s' has been successful, %d new WiFi APs w/ GPS (%d total WiFi APs w/ GPS)" %
-                                 (src_filename, trans['discgps'], trans['totalgps']))
+                                 (src_filename, trans['genDiscoveredGps'], trans['totalGps']))
 
                     src_summary[src_filename]['waiting']-=1
                     src_summary[src_filename]['completed']+=1
@@ -245,7 +244,7 @@ while len(args) > 0:
 
                     del trans_waiting[transid]
 
-                elif status == "Failed":
+                elif status == "E":
                     logging.error("Processing of '%s' has failed" % (filename))
 
                     src_summary[src_filename]['waiting']-=1
