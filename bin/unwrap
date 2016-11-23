@@ -21,10 +21,8 @@
 #%
 #%Author: Maciej Grela <enki@fsck.pl>
 
-DESTDIR="."
-
 while getopts C:vxh opt; do
-    case $opt in 
+    case $opt in
         C) destdir="$OPTARG";;
 	v) verbose=1;;
 	x) remove_container=1;;
@@ -59,7 +57,7 @@ while [ "$1" ]; do
     mkdir -p "$unwrap_dir" && unwrap_dir=$unwrap_dir container=$container eval $unpack_cmd
 
     # Search for other containers inside the extracted container
-    find "$unwrap_dir" -type f | while read file; do 
+    find "$unwrap_dir" -type f | while read file; do
 
 	# Optimize this on Cygwin by performing the suffix check now without running the command recursively
 	# fork() on Cygwin is very slow
