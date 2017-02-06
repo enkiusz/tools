@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #
 # This is a script to help you find all the files you have modified in a customized debian install.
