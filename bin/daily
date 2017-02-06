@@ -35,16 +35,15 @@ job() {
 export FEATURES='notitles' 
 
 which rfc && job "Updating RFC index" rfc -i
-job "Downloading main portage repo" emerge --sync --quiet
-which layman && job "Downloading layman overlays" layman -S
-job "Regenrating portage caches" emerge --regen --quiet
-job "Updating packages (pass 1)" emerge --quiet --backtrack=30 --update --deep --newuse --keep-going=y world
+job "Downloading package information" emaint sync -a
+#job "Regenrating portage caches" emerge --regen --quiet
+job "Updating packages (pass 1)" emerge --quiet --update --newuse --keep-going=y world
 job "Updating package mask, keywords and use flags" etc-update --automode -5 /etc/portage/package.keywords /etc/portage/package.use /etc/portage/package.unmask/diffmask /etc/portage/package.use/zzzz-portage-autounmask
-job "Updating packages (pass 2)" emerge --quiet --backtrack=30 --update --deep --newuse --keep-going=y world
-job "Rebuilding preseved libs" emerge --quiet @preserved-rebuild
+job "Updating packages (pass 2)" emerge --quiet --update --newuse --keep-going=y world
+job "Rebuilding preseved libs" emerge --quiet --keep-going=y @preserved-rebuild
 job "Rebuilding reverse dependencies" revdep-rebuild -- --quiet --keep-going=y
 job "Cleaning up unneeded dependencies" emerge --quiet --depclean
-which perl-cleaner && job "Cleaning up obsolete Perl packages" perl-cleaner --all
+which perl-cleaner && job "Cleaning up obsolete Perl packages" perl-cleaner --all -- --keep-going=y
 which g-cpan && job "Updating Perl packages from CPAN" g-cpan -u
 which emacs-updater && job "Updating emacs modules" emacs-updater -b
 which eclean && job "Cleaning unneeded distfiles" eclean distfiles
@@ -52,6 +51,7 @@ which eix-update && job "Updating ebuild search index" eix-update
 which diffmask && job "Updating diffmask" diffmask -u
 which localepurge && job "Purging unneeded locale files" localepurge
 which pfl && job "Contributing data to Portage File Library" pfl
+job "Running maintenance scipts" emaint all -f
 job "Updating shell environment files" env-update
 
 which systemctl && job "Reloading systemd units" systemctl daemon-reload
