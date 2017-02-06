@@ -17,7 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from bs4 import BeautifulSoup
-import requests, sys, os, getpass, time, json, logging, asciitable
+import requests, sys, os, getpass, time, json, logging
 
 
 # You will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
@@ -41,6 +41,9 @@ log = logging.getLogger(__name__)
 
 from optparse import OptionParser
 from urllib.parse import urljoin
+
+if log.isEnabledFor(logging.DEBUG):
+    import asciitable
 
 #
 # Default configuration
