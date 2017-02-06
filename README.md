@@ -11,6 +11,7 @@ Here is a bunch of scripts that I use more or less often:
 * bin/envunpack - Unpacks /proc/${PID}/environ files. Try 'cat /proc/self/environ | envunpack'
 * bin/hdd-surv - A HDD survey script for internet auctions
 * bin/unwrap - Recursively unpack containers. That is, if there are other container files inside they will also be unpacked.
+* bin/debian-snowflake - Find all the files that were potentially edited by you when you were customizing that Xubuntu distribution. Attempts to remove most of the false positives.
 
 ## Googlefoo
 * bin/googlehostedlibs-fetch.sh - Make a local mirror of all the libraries hosted on https://developers.google.com/speed/libraries/devguide for improved privacy

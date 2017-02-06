@@ -1,0 +1,29 @@
+#!/bin/sh
+
+#
+# This is a script to help you find all the files you have modified in a customized debian install.
+# Beware of false positives! Manually verify each file found.
+#
+# Reference: http://unix.stackexchange.com/questions/18038/how-to-list-files-and-folders-that-are-not-maintained-by-any-deb-package
+#
+
+comm -23 <(find / -xdev -type f | sort) <(sort -u /var/lib/dpkg/info/*.list) | grep -v \
+	-e '^/var/lib/dpkg/info/' \
+	-e '^/var/lib/ucf/' \
+	-e '^/usr/share/mime/' \
+	-e '^/var/cache/' \
+	-e '^/var/lib/systemd/rfkill/' \
+	-e '^/boot/grub/i386-pc/' \
+	-e '^/etc/apparmor.d/cache/' \
+	-e '^/home/' \
+	-e '^/lib/modules/.*/modules.' \
+	-e '\.pyc$' \
+	-e '^/var/lib/apt/lists/' \
+	-e '^/var/spool/' \
+	-e '^/var/lib/systemd/deb-systemd-helper-enabled/' \
+	-e '^/var/backups' \
+	-e '^/var/lib/dpkg/triggers/' \
+	-e '^/var/lib/NetworkManager/.*\.lease' \
+	-e '^/var/lib/dpkg/alternatives/' \
+	-e '^/var/lib/gconf/defaults/%gconf-tree-.*\.xml' 
+	-e '^/var/lib/doc-base/documents/'
