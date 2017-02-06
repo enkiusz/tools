@@ -25,5 +25,5 @@ comm -23 <(find / -xdev -type f | sort) <(sort -u /var/lib/dpkg/info/*.list) | g
 	-e '^/var/lib/dpkg/triggers/' \
 	-e '^/var/lib/NetworkManager/.*\.lease' \
 	-e '^/var/lib/dpkg/alternatives/' \
-	-e '^/var/lib/gconf/defaults/%gconf-tree-.*\.xml' 
+	-e '^/var/lib/gconf/defaults/%gconf-tree-.*\.xml' \
 	-e '^/var/lib/doc-base/documents/'
