@@ -21,6 +21,8 @@
 #%
 #%Author: Maciej Grela <enki@fsck.pl>
 
+destdir=.
+
 while getopts C:vxh opt; do
     case $opt in
         C) destdir="$OPTARG";;
