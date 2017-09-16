@@ -1,0 +1,10 @@
+#!/bin/sh
+
+while [ "$1" ]; do
+      github_username="$1"; shift
+
+      curl "https://api.github.com/users/$github_username/repos" | jq -r '.[] | .ssh_url' | while read url; do
+          trackrepo.rb "$url"
+      done
+
+done
