@@ -5,6 +5,8 @@ Here is a bunch of scripts that I use more or less often:
 ## Daily/maintenance:
 * bin/daily - A Gentoo maintenance script run daily on my machine
 * bin/dwmstatus - The status command I used when I had dwm
+* bin/generate-README.rb - Generate the README.md file based on Category and Shortdesc entries inside scripts.
+* bin/gitup.sh - Pull from origin in all cloned repositories
 
 ## Googlefoo:
 * bin/googlehostedlibs-fetch.sh - Make a local mirror of all the libraries hosted on https://developers.google.com/speed/libraries/devguide for improved privacy
