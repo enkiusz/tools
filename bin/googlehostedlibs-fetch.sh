@@ -1,5 +1,8 @@
 #!/bin/sh
 
+## Category: Googlefoo
+## Shortdesc: Make a local mirror of all the libraries hosted on https://developers.google.com/speed/libraries/devguide for improved privacy
+
 # Reference: http://robertmuth.blogspot.com/2012/08/better-bash-scripting-in-15-minutes.html
 set -o nounset
 

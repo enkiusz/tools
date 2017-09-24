@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+## Category: Wardriving
+## Shortdesc: Uploads wardriving data to wigle.net
+
 # wigleuploader - Upload script for wigle.net
 # Copyright (C) 2016 Maciej Grela <enki@fsck.pl>
 

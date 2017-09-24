@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 
+## Category: Internet banking
+## Shortdesc: Fetch the account balances from your http://www.banksmart.pl/ internet banking account
+
 require 'json'
 
 bank_bic = 'PBPBPLPWFMB'

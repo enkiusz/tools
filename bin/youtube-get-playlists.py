@@ -1,5 +1,8 @@
 #!/usr/bin/env python2
 
+## Category: Googlefoo
+## Shortdesc: Get a list of playlists for a particular Youtube account
+
 #
 # Taken from Google example code.
 #

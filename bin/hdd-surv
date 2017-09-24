@@ -1,6 +1,9 @@
 #!/usr/bin/env ruby
 # coding: utf-8
 
+## Category: Various
+## Shortdesc: A HDD survey script for internet auctions
+
 argv0="hdd-surv"
 require 'optparse'
 options = {

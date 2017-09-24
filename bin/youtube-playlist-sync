@@ -1,5 +1,8 @@
 #!/bin/bash
 
+## Category: Googlefoo
+## Shortdesc: Make a local mirror of all playlists for a particular Youtube account. Personal YT backup solution.
+
 # youtube-playlist-sync - Download a local backup of the movies in your playlists
 # Copyright (C) 2014 Maciej Grela <enki@fsck.pl>
 

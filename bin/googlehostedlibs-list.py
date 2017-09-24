@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+## Category: Googlefoo
+## Shortdesc: List URLs of libraries hosted on https://developers.google.com/speed/libraries/devguide
+
 import requests, string, re
 from bs4 import BeautifulSoup
 

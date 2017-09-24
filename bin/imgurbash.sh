@@ -1,5 +1,8 @@
 #!/bin/bash
 
+## Category: Various
+## Shortdesc: Upload scripts to imgur (from Bart Nagel <bart@tremby.net>)
+
 # imgur script by Bart Nagel <bart@tremby.net>
 # version 4
 # I release this into the public domain. Do with it what you will.

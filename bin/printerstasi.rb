@@ -1,5 +1,9 @@
 #!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
+
+## Category: Making the Internet of Things work for you
+## Shortdesc: Summarize info about jobs printed on a RICOH Aficio MP 6001 printer, may work for other Ricoh printers. Uses a reverse-engineered Ricoh MIB (share/mibs/vendor/RICOH-MIB.txt)
+
 # The MIT License (MIT)
 
 # Copyright (c) 2015 Maciej Grela <enki@fsck.pl>

@@ -1,5 +1,8 @@
 #!/usr/bin/env python2.7
 
+## Category: Making the Internet of Things work for you
+## Shortdesc: Store the output of OpenWRS's luci-bwc network iface traffic stats into sqlite
+
 # luci-bwc-log - Store the output of OpenWRS's luci-bwc network iface traffic stats into sqlite
 # Copyright (C) 2015 Maciej Grela <enki@fsck.pl>
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+## Category: Internet banking
+## Shortdesc: Create a PING-PONG one day deposit on your http://www.ideabank.pl/ internet banking account
+
 # ideabank - Scripted creation of Idea Bank "Ping-pong" deposit
 # Copyright (C) 2014 Maciej Grela <enki@fsck.pl>
 

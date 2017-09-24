@@ -1,0 +1,17 @@
+#!/bin/sh
+
+if [ "$1" == "--about" ]; then
+   echo "Generate a README.md file listing information about all scripts"
+   exit 0
+fi
+  
+(
+cat <<EOF
+# tools
+
+Here is a bunch of scripts that I use more or less often:
+
+EOF
+
+generate-README.rb bin/*
+) > README.md

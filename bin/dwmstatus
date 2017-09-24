@@ -1,5 +1,8 @@
 #!/bin/bash
 
+## Category: Daily/maintenance
+## Shortdesc: The status command I used when I had dwm
+
 # Config
 readonly SYS_BATTERY=${SYS_BATTERY:-BAT0} # The main system battery name used to decide whether to hibernate
 readonly POWER_SUPPLY_ROOT=${POWER_SUPPLY_ROOT:-/sys/class/power_supply} # The sysfs directory used to find all power supplies (AC+batteries)

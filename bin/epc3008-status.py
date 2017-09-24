@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+## Category: Making the Internet of Things work for you
+## Shortdesc: Scrape and print the status of a Cisco EPC3008 cable modem
+
 import requests, re, sys, argparse
 from bs4 import BeautifulSoup
 

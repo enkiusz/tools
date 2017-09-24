@@ -1,5 +1,8 @@
 #!/usr/bin/env perl
 
+## Category: Various
+## Shortdesc: Unpacks /proc/${PID}/environ files. Try 'cat /proc/self/environ | envunpack'
+
 use strict;
 use warnings;
 

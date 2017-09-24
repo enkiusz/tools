@@ -1,5 +1,8 @@
 #!/bin/sh
 
+## Category: Various
+## Shortdesc: Clone all repositories of a particular user from github.com
+
 while [ "$1" ]; do
       github_username="$1"; shift
 

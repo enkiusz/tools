@@ -1,5 +1,8 @@
 #!/bin/bash
 
+## Category: Various
+## Shortdesc: Find all the files that were potentially edited by you when you were customizing that Xubuntu distribution. Attempts to remove most of the false positives.
+
 #
 # This is a script to help you find all the files you have modified in a customized debian install.
 # Beware of false positives! Manually verify each file found.
