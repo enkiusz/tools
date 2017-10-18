@@ -15,6 +15,7 @@
 #%- 7z archives -> requires '7z'
 #%- rpm packages -> requires 'rpm2tar' and 'tar'
 #%- deb packages -> requires 'deb2targz' and 'tar'
+#%- iso images -> requires '7z'
 #%
 #%Usage: unwrap [-C <destdir>] [-v] [-x] [-h] <container_1> <container_2> ... <container_n>
 #%
@@ -56,6 +57,7 @@ while [ "$1" ]; do
 	*.7z) suffix='.7z'; unpack_cmd='if [ -z "$verbose" ]; then 7z x -o"$unwrap_dir" "$container" > /dev/null; else 7z x -o"$unwrap_dir" "$container"; fi';;
   *.rpm) suffix='.rpm'; unpack_cmd='rpm2tar -O "$container" | tar -C "$unwrap_dir" -x${verbose:+v}';;
   *.deb) suffix='.deb'; unpack_cmd='deb2targz "$container"; tar -C "$unwrap_dir" -xz${verbose:+v}f $(basename "$container" .deb).tar.gz; rm $(basename "$container" .deb).tar.gz';;
+  *.iso) suffix='.iso'; unpack_cmd='if [ -z "$verbose" ]; then 7z x -o"$unwrap_dir" "$container" > /dev/null; else 7z x -o"$unwrap_dir" "$container"; fi';;
 	*)  # This file is not an container we know, skip
 	    echo "$container: Skipping, not an container type we know"
 	    continue;;
@@ -72,7 +74,7 @@ while [ "$1" ]; do
 	# fork() on Cygwin is very slow
 
 	case "$file" in
-	    *.zip|*.jar|*.tar|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb)
+	    *.zip|*.jar|*.tar|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb|*.iso)
 		unwrap -C $(dirname "$file") -x "$file";;
 	esac
     done
