@@ -44,18 +44,18 @@ while [ "$1" ]; do
 
     # Detect suffix
     case "$container" in
-	*.zip) suffix=".zip"; unpack_cmd='unzip -d "$unwrap_dir" "$container"';;
-	*.jar) suffix=".jar"; unpack_cmd='unzip -d "$unwrap_dir" "$container"';;
-	*.tar) suffix=".tar"; unpack_cmd='tar -C "$unwrap_dir" -xvf "$container"';;
-	*.tar.gz) suffix=".tar.gz"; unpack_cmd='tar -C "$unwrap_dir" -xzvf "$container"';;
-	*.tar.bz2) suffix=".tar.bz2"; unpack_cmd='tar -C "$unwrap_dir" -xjvf "$container"';;
-	*.tar.xz) suffix=".tar.xz"; unpack_cmd='xz --decompress --stdout "$container" | tar -C "$unwrap_dir" -xv';;
-	*.tgz) suffix=".tgz"; unpack_cmd='tar -C "$unwrap_dir" -xzvf "$container"';;
-	*.tbz2) suffix=".tbz2"; unpack_cmd='tar -C "$unwrap_dir" -xjvf "$container"';;
-	*.rar) suffix=".rar"; unpack_cmd='unrar x "$container" "$unwrap_dir/"';;
-	*.7z) suffix='.7z'; unpack_cmd='7z x -o"$unwrap_dir" "$container"';;
-  *.rpm) suffix='.rpm'; unpack_cmd='rpm2tar -O "$container" | tar -C "$unwrap_dir" -xv';;
-  *.deb) suffix='.deb'; unpack_cmd='deb2targz "$container"; tar -C "$unwrap_dir" -xzvf $(basename "$container" .deb).tar.gz; rm $(basename "$container" .deb).tar.gz';;
+	*.zip) suffix=".zip"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
+	*.jar) suffix=".jar"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
+	*.tar) suffix=".tar"; unpack_cmd='tar -C "$unwrap_dir" -x${verbose:+v}f "$container"';;
+	*.tar.gz) suffix=".tar.gz"; unpack_cmd='tar -C "$unwrap_dir" -xz${verbose:+v}f "$container"';;
+	*.tar.bz2) suffix=".tar.bz2"; unpack_cmd='tar -C "$unwrap_dir" -xj${verbose:+v}f "$container"';;
+	*.tar.xz) suffix=".tar.xz"; unpack_cmd='xz --decompress --stdout "$container" | tar -C "$unwrap_dir" -x${verbose:+v}';;
+	*.tgz) suffix=".tgz"; unpack_cmd='tar -C "$unwrap_dir" -xz${verbose:+v}f "$container"';;
+	*.tbz2) suffix=".tbz2"; unpack_cmd='tar -C "$unwrap_dir" -xj${verbose:+v}f "$container"';;
+	*.rar) suffix=".rar"; unpack_cmd='[ -z "$verbose" ] && unrar_quiet_flag="-inul"; unrar $unrar_quiet_flag x "$container" "$unwrap_dir/"';;
+	*.7z) suffix='.7z'; unpack_cmd='if [ -z "$verbose" ]; then 7z x -o"$unwrap_dir" "$container" > /dev/null; else 7z x -o"$unwrap_dir" "$container"; fi';;
+  *.rpm) suffix='.rpm'; unpack_cmd='rpm2tar -O "$container" | tar -C "$unwrap_dir" -x${verbose:+v}';;
+  *.deb) suffix='.deb'; unpack_cmd='deb2targz "$container"; tar -C "$unwrap_dir" -xz${verbose:+v}f $(basename "$container" .deb).tar.gz; rm $(basename "$container" .deb).tar.gz';;
 	*)  # This file is not an container we know, skip
 	    echo "$container: Skipping, not an container type we know"
 	    continue;;
