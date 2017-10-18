@@ -13,6 +13,8 @@
 #%- jar files -> requires 'unzip'
 #%- rar archives -> requires 'unrar'
 #%- 7z archives -> requires '7z'
+#%- rpm packages -> requires 'rpm2tar' and 'tar'
+#%- deb packages -> requires 'deb2targz' and 'tar'
 #%
 #%Usage: unwrap [-C <destdir>] [-v] [-x] [-h] <container_1> <container_2> ... <container_n>
 #%
@@ -52,6 +54,8 @@ while [ "$1" ]; do
 	*.tbz2) suffix=".tbz2"; unpack_cmd='tar -C "$unwrap_dir" -xjvf "$container"';;
 	*.rar) suffix=".rar"; unpack_cmd='unrar x "$container" "$unwrap_dir/"';;
 	*.7z) suffix='.7z'; unpack_cmd='7z x -o"$unwrap_dir" "$container"';;
+  *.rpm) suffix='.rpm'; unpack_cmd='rpm2tar -O "$container" | tar -C "$unwrap_dir" -xv';;
+  *.deb) suffix='.deb'; unpack_cmd='deb2targz "$container"; tar -C "$unwrap_dir" -xzvf $(basename "$container" .deb).tar.gz; rm $(basename "$container" .deb).tar.gz';;
 	*)  # This file is not an container we know, skip
 	    echo "$container: Skipping, not an container type we know"
 	    continue;;
@@ -68,7 +72,7 @@ while [ "$1" ]; do
 	# fork() on Cygwin is very slow
 
 	case "$file" in
-	    *.zip|*.jar|*.tar|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z)
+	    *.zip|*.jar|*.tar|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb)
 		unwrap -C $(dirname "$file") -x "$file";;
 	esac
     done
