@@ -22,6 +22,7 @@
 #%Available command line switches:
 #%-C <destdir>  - unwrap to directory <destdir> instead of the current directory
 #%-v            - increase verbosity
+#%-H <hashfile> - store SHA256 hashes of all extracted files into <hashfile>
 #%-x            - remove container after extraction
 #%-h            - this help text
 #%
@@ -29,11 +30,12 @@
 
 destdir=.
 
-while getopts C:vxh opt; do
+while getopts C:vxhH: opt; do
     case $opt in
         C) destdir="$OPTARG";;
 	v) verbose=1;;
 	x) remove_container=1;;
+  H) hash_filename="$OPTARG";;
 	h) grep "^#%" $0 | sed 's/^#%//';;
         ?) exit 1;;
     esac
@@ -42,6 +44,11 @@ shift $((OPTIND-1))
 
 while [ "$1" ]; do
     container="$1"; shift
+
+    if [ -n "$hash_filename" ]; then
+        [ "$verbose" ] && echo "$container: Calculating SHA256 hash"
+        sha256sum "$container" >> "$hash_filename"
+    fi
 
     # Detect suffix
     case "$container" in
@@ -56,7 +63,7 @@ while [ "$1" ]; do
 	*.rar) suffix=".rar"; unpack_cmd='[ -z "$verbose" ] && unrar_quiet_flag="-inul"; unrar $unrar_quiet_flag x "$container" "$unwrap_dir/"';;
 	*.7z) suffix='.7z'; unpack_cmd='if [ -z "$verbose" ]; then 7z x -o"$unwrap_dir" "$container" > /dev/null; else 7z x -o"$unwrap_dir" "$container"; fi';;
   *.rpm) suffix='.rpm'; unpack_cmd='rpm2tar -O "$container" | tar -C "$unwrap_dir" -x${verbose:+v}';;
-  *.deb) suffix='.deb'; unpack_cmd='deb2targz "$container"; tar -C "$unwrap_dir" -xz${verbose:+v}f $(basename "$container" .deb).tar.gz; rm $(basename "$container" .deb).tar.gz';;
+  *.deb) suffix='.deb'; unpack_cmd='tarfile=$(deb2targz "$container" | awk "/deb2targz: wrote / { print \$3; }" | tr -d "\047"); unwrap -C $(dirname "$unwrap_dir") ${verbose:+-v} -x ${hash_filename:+-H $hash_filename} "$tarfile"';;
   *.iso) suffix='.iso'; unpack_cmd='if [ -z "$verbose" ]; then 7z x -o"$unwrap_dir" "$container" > /dev/null; else 7z x -o"$unwrap_dir" "$container"; fi';;
 	*)  # This file is not an container we know, skip
 	    echo "$container: Skipping, not an container type we know"
@@ -75,7 +82,13 @@ while [ "$1" ]; do
 
 	case "$file" in
 	    *.zip|*.jar|*.tar|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb|*.iso)
-		unwrap -C $(dirname "$file") -x "$file";;
+		      unwrap -C $(dirname "$file") ${hash_filename:+-H $hash_filename} ${remove_container:+-x} "$file";;
+      *)
+          if [ -n "$hash_filename" ]; then
+              [ "$verbose" ] && echo "$file: Calculating2 SHA256 hash"
+              sha256sum "$file" >> "$hash_filename"
+          fi
+          ;;
 	esac
     done
 
