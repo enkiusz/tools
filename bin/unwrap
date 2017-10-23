@@ -14,7 +14,7 @@
 #%- rar archives -> requires 'unrar'
 #%- 7z archives -> requires '7z'
 #%- rpm packages -> requires 'rpm2tar' and 'tar'
-#%- deb packages -> requires 'deb2targz' and 'tar'
+#%- deb packages -> requires 'dpkg-deb'
 #%- iso images -> requires '7z'
 #%
 #%Usage: unwrap [-C <destdir>] [-v] [-x] [-h] <container_1> <container_2> ... <container_n>
@@ -63,7 +63,8 @@ while [ "$1" ]; do
 	*.rar) suffix=".rar"; unpack_cmd='[ -z "$verbose" ] && unrar_quiet_flag="-inul"; unrar $unrar_quiet_flag x "$container" "$unwrap_dir/"';;
 	*.7z) suffix='.7z'; unpack_cmd='if [ -z "$verbose" ]; then 7z x -o"$unwrap_dir" "$container" > /dev/null; else 7z x -o"$unwrap_dir" "$container"; fi';;
   *.rpm) suffix='.rpm'; unpack_cmd='rpm2tar -O "$container" | tar -C "$unwrap_dir" -x${verbose:+v}';;
-  *.deb) suffix='.deb'; unpack_cmd='tarfile=$(deb2targz "$container" | awk "/deb2targz: wrote / { print \$3; }" | tr -d "\047"); unwrap -C $(dirname "$unwrap_dir") ${verbose:+-v} -x ${hash_filename:+-H $hash_filename} "$tarfile"';;
+  *.deb) suffix='.deb'; unpack_cmd='dpkg-deb -x "$container"  "$unwrap_dir"';;
+  *.udeb) suffix='.udeb'; unpack_cmd='dpkg-deb -x "$container"  "$unwrap_dir"';;
   *.iso) suffix='.iso'; unpack_cmd='if [ -z "$verbose" ]; then 7z x -o"$unwrap_dir" "$container" > /dev/null; else 7z x -o"$unwrap_dir" "$container"; fi';;
 	*)  # This file is not an container we know, skip
 	    echo "$container: Skipping, not an container type we know"
@@ -81,7 +82,7 @@ while [ "$1" ]; do
 	# fork() on Cygwin is very slow
 
 	case "$file" in
-	    *.zip|*.jar|*.tar|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb|*.iso)
+	    *.zip|*.jar|*.tar|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb|*.udeb|*.iso)
 		      unwrap -C $(dirname "$file") ${hash_filename:+-H $hash_filename} ${remove_container:+-x} "$file";;
       *)
           if [ -n "$hash_filename" ]; then
