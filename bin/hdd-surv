@@ -143,11 +143,11 @@ optparse = OptionParser.new do|opts|
     if options[:wipe] == 1
       # Options: Destructive write test (first write pattern then read it back and compare)
       puts "Running destructive write test"
-      system "sudo badblocks -e 1 -sv -w -t random '#{dev}'"
+      system "sudo badblocks -o '#{badblocks_filename}' -e 1 -sv -w -t random '#{dev}'"
     else
     # Options: Non-destructive read-write test (first write pattern then read it back and compare)
       puts "Running non-destructive read-write test"
-      system "sudo badblocks -e 1 -sv -n -t random '#{dev}'"
+      system "sudo badblocks -o '#{badblocks_filename}' -e 1 -sv -n -t random '#{dev}'"
     end
     # TODO check if hard disk had bad blocks and MARK
   end
