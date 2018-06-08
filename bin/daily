@@ -41,7 +41,7 @@ export FEATURES='notitles'
 which rfc && job "Updating RFC index" rfc -i
 job "Downloading package information" emaint sync -a
 #job "Regenrating portage caches" emerge --regen --quiet
-job "Updating packages (pass 1)" emerge --quiet --update --newuse --keep-going=y world
+job "Updating packages (pass 1)" emerge --quiet --update --deep --newuse --keep-going=y world
 job "Rebuilding preseved libs" emerge --quiet --keep-going=y @preserved-rebuild
 job "Rebuilding reverse dependencies" revdep-rebuild -- --quiet --keep-going=y
 job "Cleaning up unneeded dependencies" emerge --quiet --depclean
