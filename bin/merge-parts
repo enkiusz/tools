@@ -1,0 +1,19 @@
+#!/bin/sh
+
+#
+# Copyright 2018 Maciej Grela <enki@fsck.pl>
+# SPDX-License-Identifier: WTFPL
+#
+# Merge parts into a single stream supporting *.d style directories and executable generators.
+#
+
+while [ "$1" ]; do
+      file="$1"; shift
+      if [ -d "$file" ]; then
+            find $file -mindepth 1 -maxdepth 1 | sort | xargs $0
+      elif [ -x "$file" ]; then
+           "./$file"
+      elif [ -r "$file" ]; then
+           cat "$file"
+      fi
+done
