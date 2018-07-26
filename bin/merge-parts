@@ -7,8 +7,16 @@
 # Merge parts into a single stream supporting *.d style directories and executable generators.
 #
 
+if [ "x$1" = "x-r" ]; then
+    recurse=yes
+    shift
+fi
+
 while [ "$1" ]; do
       file="$1"; shift
+      if [ -z "$recurse" -a -d "$file" ]; then
+          continue
+      fi
       if [ -d "$file" ]; then
             find $file -mindepth 1 -maxdepth 1 | sort | xargs $0
       elif [ -x "$file" ]; then
