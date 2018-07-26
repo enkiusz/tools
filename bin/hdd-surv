@@ -51,6 +51,10 @@ optparse = OptionParser.new do|opts|
      options[:badblocks] = 1
    end
 
+   opts.on( '--smartupload', 'Upload SMART data using wgetpaste' ) do
+     options[:smartupload] = 1
+   end
+
    # This displays the help screen, all programs are
    # assumed to have this option.
    opts.on( '-h', '--help', 'Display this screen' ) do
@@ -135,6 +139,9 @@ optparse = OptionParser.new do|opts|
   smart_data_file = File.open(smart_data_filename, "w+")
   smart_data_file.write(smart_data)
   smart_data_file.close()
+  if options[:smartupload] == 1
+    paste_url = `cat #{smart_data_filename} | wgetpaste --raw`.chomp()
+  end
 
   if options[:badblocks] == 1
     badblocks_filename = File.join(dir, "badblocks")
@@ -175,9 +182,13 @@ optparse = OptionParser.new do|opts|
   auction_file.puts("<br>\n")
   auction_file.puts("<p>Stan wizualny widoczny jest na zdjęciu.</p>")
   auction_file.puts("<br>\n")
-  auction_file.puts("<p>Zrzut danych SMART:</p>")
-  auction_file.puts("<pre><span style='font-family: Courier New, Courier, monospaced;'>")
-  auction_file.puts(smart_data)
-  auction_file.puts("</span></pre>")
+  if options[:smartupload] == 1
+    auction_file.puts("<p><a href=\"#{paste_url}\">Zrzut danych SMART</a></p>")
+  else
+    auction_file.puts("<p>Zrzut danych SMART:</p>")
+    auction_file.puts("<pre><span style='font-family: Courier New, Courier, monospaced;'>")
+    auction_file.puts(smart_data)
+    auction_file.puts("</span></pre>")
+  end
   auction_file.close()
 end

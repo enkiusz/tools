@@ -54,6 +54,7 @@ while [ "$1" ]; do
     case "$container" in
 	*.zip) suffix=".zip"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
 	*.jar) suffix=".jar"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
+	*.apk) suffix=".apk"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
 	*.tar) suffix=".tar"; unpack_cmd='tar -C "$unwrap_dir" -x${verbose:+v}f "$container"';;
 	*.tar.gz) suffix=".tar.gz"; unpack_cmd='tar -C "$unwrap_dir" -xz${verbose:+v}f "$container"';;
 	*.tar.bz2) suffix=".tar.bz2"; unpack_cmd='tar -C "$unwrap_dir" -xj${verbose:+v}f "$container"';;
@@ -82,7 +83,7 @@ while [ "$1" ]; do
 	# fork() on Cygwin is very slow
 
 	case "$file" in
-	    *.zip|*.jar|*.tar|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb|*.udeb|*.iso)
+	    *.zip|*.jar|*.tar|*.apk|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb|*.udeb|*.iso)
 		      unwrap -C $(dirname "$file") ${hash_filename:+-H $hash_filename} ${remove_container:+-x} "$file";;
       *)
           if [ -n "$hash_filename" ]; then
