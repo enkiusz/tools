@@ -2,7 +2,7 @@
  * Copyright 2018 Maciej Grela <enki@fsck.pl>
  * SPDX-License-Identifier: WTFPL
  * 
- * Very basic meter pulse output (S0) interface.
+ * Very basic meter pulse output (SO) interface.
  */
  
 /* 
@@ -14,10 +14,10 @@
                     |
                     |
                     |
-                    +----------------------- S0 (+)
+                    +----------------------- SO (+)
 
 
-                    +----------------------- S0 (-)
+                    +----------------------- SO (-)
                     |
 PULSE_PIN <---------+
                     |
@@ -35,11 +35,11 @@ PULSE_PIN <---------+
  * +5V and GND are provided by the Arduino directly. The S0 wires go to the meter.
  * 
  */
-#define PULSE_PIN 8
+#define PULSE_PIN 13
 
 /* 
  *  This is the threshold for the pulse length. Typically the pulse is at least 50-100 ms long. 
- *  The S0 (DIN 43684 / EN IEC 62053-31) standard specifies 30 ms as the minimal pulse width.
+ *  The SO (DIN 43684 / EN IEC 62053-31) standard specifies 30 ms as the minimal pulse width.
  *  Most meters generate a longer pulse. We chose 30 ms as our threshold width.
  *  
  *  References:
@@ -58,7 +58,7 @@ PULSE_PIN <---------+
 void setup() {
   pinMode(PULSE_PIN, INPUT);
   
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void loop() {
