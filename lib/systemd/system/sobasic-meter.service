@@ -1,0 +1,10 @@
+[Unit]
+Description=sobasic-meter service
+
+[Service]
+EnvironmentFile=/etc/default/sobasic-meter
+ExecStart=/usr/local/bin/sobasic-meter.py measure --quantum "$QUANTUM" -r "$RRDFILE" $DEVICEOPTS
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
