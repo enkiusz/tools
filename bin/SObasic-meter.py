@@ -119,7 +119,7 @@ def measurement_loop(config):
     step_line = next( filter(lambda line: line.startswith("step = "), subprocess.getoutput("rrdtool info '{}'".format(config.rrdfile)).split("\n")) )
     period = dt.timedelta(seconds=int(re.match("step\s*=\s*(\d+)", step_line).group(1)))
 
-    log.info("Reading pulses from '{}' with integration period '{}', quant '{}' and storing to RRD database '{}'".format(args.port, period, args.quant, args.rrdfile))
+    log.info("Reading pulses from '{}' with integration period '{}', quantum '{}' and storing to RRD database '{}'".format(args.port, period, args.quantum, args.rrdfile))
 
     # Set the timeout so that it corresponds to the period
     with serial.Serial(args.port, args.bitrate, timeout=period.seconds // 2) as ser:
@@ -138,7 +138,7 @@ def measurement_loop(config):
             period_end = dt.datetime.now()
             log.debug("PERIOD '{}' -> '{}' (duration {}) had '{}' pulses".format(period_start, period_end, period_end - period_start, pulse_count))
 
-            rrdtool_run("rrdtool update '{}' 'N@{}'".format(config.rrdfile, pulse_count * config.quant))
+            rrdtool_run("rrdtool update '{}' 'N@{}'".format(config.rrdfile, pulse_count * config.quantum))
     return 0
 
 if __name__ == "__main__":
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     parser_m = subparsers.add_parser("measure", help="Measure pulses and store in RRD")
     parser_m.add_argument("-b", "--bitrate", metavar="BPS", default=115200, type=int, help="The bitrate of the serial port")
     parser_m.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
-    parser_m.add_argument("-q", "--quant", metavar="QUANT", type=float, default=1.0, help="The amount of measured resource (energy/water/gas) consumed for each pulse. The amount of pulses will be multipled by this value before storing in RRD")
+    parser_m.add_argument("-q", "--quantum", metavar="QUANTUM", type=float, default=1.0, help="The amount of measured resource (energy/water/gas) consumed for each pulse. The amount of pulses will be multipled by this value before storing in RRD")
     parser_m.add_argument("-p", "--port", metavar="DEV", help="The serial port that connects to the SObasic module")
 
     parser_c = subparsers.add_parser("create", help="Create the SObasic RRD database")
