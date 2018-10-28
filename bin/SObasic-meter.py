@@ -113,6 +113,9 @@ def find_arduino_serial():
 
 def measurement_loop(config):
 
+    if config.port is None:
+        config.port=find_arduino_serial()
+
     step_line = next( filter(lambda line: line.startswith("step = "), subprocess.getoutput("rrdtool info '{}'".format(config.rrdfile)).split("\n")) )
     period = dt.timedelta(seconds=int(re.match("step\s*=\s*(\d+)", step_line).group(1)))
 
@@ -150,7 +153,7 @@ if __name__ == "__main__":
     parser_m.add_argument("-b", "--bitrate", metavar="BPS", default=115200, type=int, help="The bitrate of the serial port")
     parser_m.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
     parser_m.add_argument("-q", "--quant", metavar="QUANT", type=float, default=1.0, help="The amount of measured resource (energy/water/gas) consumed for each pulse. The amount of pulses will be multipled by this value before storing in RRD")
-    parser_m.add_argument("-p", "--port", metavar="DEV", default=find_arduino_serial(), help="The serial port that connects to the SObasic module")
+    parser_m.add_argument("-p", "--port", metavar="DEV", help="The serial port that connects to the SObasic module")
 
     parser_c = subparsers.add_parser("create", help="Create the SObasic RRD database")
     parser_c.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
