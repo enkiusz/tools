@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #
 # Copyright 2018 Maciej Grela <enki@fsck.pl>
@@ -7,10 +7,22 @@
 # Merge parts into a single stream supporting *.d style directories and executable generators.
 #
 
-if [ "x$1" = "x-r" ]; then
-    recurse=yes
-    shift
-fi
+usage() { echo "Usage: $0 [-r] [-F <comment_string>] files/directories ..." 1>&2; exit 1; }
+
+while getopts ":rF:" o; do
+    case "${o}" in
+        r)
+            readonly recurse=yes
+            ;;
+        F)
+            readonly filter_comm_string=${OPTARG}
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+shift $((OPTIND-1))
 
 while [ "$1" ]; do
       file="$1"; shift
@@ -18,10 +30,18 @@ while [ "$1" ]; do
           continue
       fi
       if [ -d "$file" ]; then
-            find $file -mindepth 1 -maxdepth 1 | sort | xargs $0
+            find $file -mindepth 1 -maxdepth 1 | sort | xargs $0 ${filter_comm_string:+-F "$filter_comm_string"} ${recurse:+-r}
       elif [ -x "$file" ]; then
-           "./$file"
+          if [ -n "$filter_comm_string" ]; then
+              "./$file" | (grep -v -e "^${filter_comm_string}" || true)
+          else
+              "./$file"
+          fi
       elif [ -r "$file" ]; then
-           cat "$file"
+          if [ -n "$filter_comm_string" ]; then
+              grep -v -e "^${filter_comm_string}" < "$file" || true
+          else
+              cat "$file"
+          fi
       fi
 done
