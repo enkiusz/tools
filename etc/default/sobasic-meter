@@ -1,0 +1,19 @@
+#
+# SObasic-meter settings
+#
+
+#
+# The device path, it should be autodetected if it's an Arduino board. If autodetection
+# doesn't work please set the device manually. You can also set the bitrate.
+#
+# DEVICEOTPS="--port /dev/serialport -b 9600"
+
+#
+# RRD database file path (needs to be created before starting the service)
+#
+RRDFILE="/var/lib/sobasic-meter/energy.rrd"
+
+#
+# The default quantum is 1 unit per pulse
+#
+QUANTUM="1.0"
