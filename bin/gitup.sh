@@ -19,9 +19,10 @@ titleoff()
 
 find "$REPOS_BASE" -name '.git' -type d | while read gitdir; do
     repo_dir=$(dirname "$gitdir")
-    titleon; echo "--- Maintaining repo in '$repo_dir"; titleoff
+    titleon; echo "Maintaining repo in '$repo_dir'"; titleoff
     pushd "$repo_dir" > /dev/null
     git pull
+    git status -s
     popd > /dev/null
 done
 
