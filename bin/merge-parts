@@ -7,6 +7,9 @@
 # Merge parts into a single stream supporting *.d style directories and executable generators.
 #
 
+## Category: Various
+## Shortdesc: Merge parts into a single stream supporting *.d style directories and executable generators.
+
 usage() { echo "Usage: $0 [-r] [-F <comment_string>] files/directories ..." 1>&2; exit 1; }
 
 while getopts ":rF:" o; do
