@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+
+## Category: Various
+## Shortdesc: Make a .meta4 Metalink file from an S3 bucket index XML. This allows the bucket to be downloaded by a downloader supporting the metalink format (for example aria2c).
+
+import requests
+import logging
+from bs4 import BeautifulSoup
+from argparse import ArgumentParser
+from lxml import etree
+
+def main(config):
+
+    root = etree.Element('metalink', xmlns='urn:ietf:params:xml:ns:metalink')
+
+    for bucket_url in config.URL:
+
+        log.debug("Fetching S3 bucket '{}'".format(bucket_url))
+
+        # Download the index XML
+        index_xml = requests.get(str(bucket_url)).content
+
+        bs = BeautifulSoup(index_xml, "lxml")
+        for obj in bs.find_all("contents"):
+            key = obj.find('key').get_text()
+            obj_url = urljoin(bucket_url, key)
+            size = int(obj.find('size').get_text())
+            md5 = obj.find('etag').get_text().strip('"')
+
+            if size <= 0:
+                continue
+
+            file = etree.SubElement(root, 'file')
+            file.attrib['name'] = key
+            etree.SubElement(file, 'size').text = obj.find('size').get_text()
+            etree.SubElement(file, 'hash', type='md5').text = md5
+            etree.SubElement(file, 'url').text = obj_url
+
+    print(etree.tostring(root, xml_declaration=True, pretty_print=True, encoding='UTF-8').decode('UTF-8'))
+
+if __name__ == "__main__":
+
+    parser = ArgumentParser(description="Extract a metalink file from public S3 bucket indices")
+    parser.add_argument("URL", nargs="+")
+
+    logging.basicConfig(level=logging.INFO)
+    log = logging.getLogger(__name__)
+
+    config = parser.parse_args()
+    main(config)
+

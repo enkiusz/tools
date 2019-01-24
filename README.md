@@ -31,6 +31,7 @@ Here is a bunch of scripts that I use more or less often:
 * bin/hdd-surv - A HDD survey script for internet auctions
 * bin/imgurbash.sh - Upload scripts to imgur (from Bart Nagel <bart@tremby.net>)
 * bin/unwrap - Recursively unpack containers. That is, if there are other container files inside they will also be unpacked.
+* bin/s3metalink - Make a .meta4 Metalink file from an S3 bucket index XML. This allows the bucket to be downloaded by a downloader supporting the metalink format (for example aria2c).
 
 ## Wardriving:
 * bin/wiglenet-uploader.py - Uploads wardriving data to wigle.net
