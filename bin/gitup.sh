@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ## Category: Daily/maintenance
 ## Shortdesc: Pull from origin in all cloned repositories
