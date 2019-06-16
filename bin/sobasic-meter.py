@@ -148,7 +148,7 @@ def measurement_loop(config):
             log.debug("Period start '{}'".format(period_start.isoformat()))
             pulse_count = 0
 
-            while dt.datetime.now() - period_start < period:
+            while dt.datetime.now(dt.timezone.utc) - period_start < period:
                 line = ser.readline().decode('ascii').rstrip()
                 log.debug("READ: '{}'".format(line))
                 if line == "SO pulse":
