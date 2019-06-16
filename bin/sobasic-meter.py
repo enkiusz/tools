@@ -73,12 +73,12 @@ config = SimpleNamespace(
             "interval": dt.timedelta(hours=1),
             "duration": dt.timedelta(days=365)
         }
-    }
+    },
 
     #
     # MQTT configuration
     #
-    mqtt_topic = "energy/kWh"
+    mqtt_topic="energy/kWh"
 
 )
 
@@ -159,8 +159,8 @@ def measurement_loop(config):
 
             rrdtool_run("rrdtool update '{}' 'N@{}'".format(config.rrdfile, pulse_count * config.quantum))
 
-            if config.mqtt_broker:
-                mqtt_client.publish(config.mqtt_topic, qos=1, json.dumps(
+            if mqtt_client:
+                mqtt_client.publish(config.mqtt_topic, qos=1, payload=json.dumps(
                     {
                         "period_begin": str(period_start),
                         "period_end": str(period_end),
@@ -195,9 +195,13 @@ if __name__ == "__main__":
     logging.basicConfig(level=getattr(logging, config.loglevel))
     if config.mqtt_broker:
         import paho.mqtt.client as mqtt
-        mqtt_client = mqtt.client()
-        log.info("Connecting to MQTT broker '{}'".format(config.mqtt_broker))
-        mqtt_client.connect(config.mqtt_broker)
+        mqtt_client = mqtt.Client()
+        try:
+            log.info("Connecting to MQTT broker '{}'".format(config.mqtt_broker))
+            mqtt_client.connect(config.mqtt_broker)
+        except:
+            # Connection to broker failed, disable MQTT
+            log.error("Cannot connect to MQTT broker, MQTT will be disabled")
 
     log.debug("Configuration dump: {}".format(config))
 
