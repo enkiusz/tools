@@ -154,7 +154,7 @@ def measurement_loop(config):
                 if line == "SO pulse":
                     pulse_count += 1
 
-            period_end = dt.datetime.now()
+            period_end = dt.datetime.now(dt.timezone.utc)
             log.debug("PERIOD '{}' -> '{}' (duration {}) had '{}' pulses".format(period_start.isoformat(), period_end.isoformat(), period_end - period_start, pulse_count))
 
             rrdtool_run("rrdtool update '{}' 'N@{}'".format(config.rrdfile, pulse_count * config.quantum))
