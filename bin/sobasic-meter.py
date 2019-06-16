@@ -18,6 +18,7 @@ import serial
 import datetime as dt
 import serial.tools.list_ports
 from types import SimpleNamespace
+import json
 
 log = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ config = SimpleNamespace(
     rra_defs={
         # Prediction RRA
         #
-        # This RRA stores LAST readout in one step intervals for 30 days. This is basically the raw data gathered by the meter.
+        # This RRA stores AVERAGE readout in one step intervals for 30 days. This is basically the raw data gathered by the meter.
         #
         # It's possible use is load prediction and general graphing of short-term data.
         #
@@ -73,6 +74,12 @@ config = SimpleNamespace(
             "duration": dt.timedelta(days=365)
         }
     }
+
+    #
+    # MQTT configuration
+    #
+    mqtt_topic = "energy/kWh"
+
 )
 
 def rrdtool_run(cmd):
@@ -151,6 +158,15 @@ def measurement_loop(config):
             log.debug("PERIOD '{}' -> '{}' (duration {}) had '{}' pulses".format(period_start, period_end, period_end - period_start, pulse_count))
 
             rrdtool_run("rrdtool update '{}' 'N@{}'".format(config.rrdfile, pulse_count * config.quantum))
+
+            if config.mqtt_broker:
+                mqtt_client.publish(config.mqtt_topic, qos=1, json.dumps(
+                    {
+                        "period_begin": str(period_start),
+                        "period_end": str(period_end),
+                        "usage":  pulse_count * config.quantum
+                    }
+                ))
     return 0
 
 if __name__ == "__main__":
@@ -167,6 +183,8 @@ if __name__ == "__main__":
     parser_m.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
     parser_m.add_argument("-q", "--quantum", metavar="QUANTUM", type=float, default=config.quantum, help="The amount of measured resource (energy/water/gas) consumed for each pulse. The amount of pulses will be multipled by this value before storing in RRD")
     parser_m.add_argument("-i", "--interval", metavar="SEC", type=float, default=config.interval, help="The interval is the time during all pulses are counted as a single energy usage value.")
+    parser_m.add_argument("--mqtt-broker", metavar="NAME", help="Send data to specified MQTT broker")
+    parser_m.add_argument("--mqtt-topic", metavar="TOPIC", default=config.mqtt_topic, help="Set MQTT topic")
 
     parser_c = subparsers.add_parser("create", help="Create the SObasic RRD database")
     parser_c.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
@@ -175,6 +193,11 @@ if __name__ == "__main__":
     config.__dict__.update(vars(args))
 
     logging.basicConfig(level=getattr(logging, config.loglevel))
+    if config.mqtt_broker:
+        import paho.mqtt.client as mqtt
+        mqtt_client = mqtt.client()
+        log.info("Connecting to MQTT broker '{}'".format(config.mqtt_broker))
+        mqtt_client.connect(config.mqtt_broker)
 
     log.debug("Configuration dump: {}".format(config))
 
