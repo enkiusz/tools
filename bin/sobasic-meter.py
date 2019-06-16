@@ -144,8 +144,8 @@ def measurement_loop(config):
     with serial.Serial(args.port, args.bitrate, timeout=period.seconds // 2) as ser:
 
         while True:
-            period_start = dt.datetime.now()
-            log.debug("Period start '{}'".format(period_start))
+            period_start = dt.datetime.now(dt.timezone.utc)
+            log.debug("Period start '{}'".format(period_start.isoformat()))
             pulse_count = 0
 
             while dt.datetime.now() - period_start < period:
@@ -155,15 +155,15 @@ def measurement_loop(config):
                     pulse_count += 1
 
             period_end = dt.datetime.now()
-            log.debug("PERIOD '{}' -> '{}' (duration {}) had '{}' pulses".format(period_start, period_end, period_end - period_start, pulse_count))
+            log.debug("PERIOD '{}' -> '{}' (duration {}) had '{}' pulses".format(period_start.isoformat(), period_end.isoformat(), period_end - period_start, pulse_count))
 
             rrdtool_run("rrdtool update '{}' 'N@{}'".format(config.rrdfile, pulse_count * config.quantum))
 
             if mqtt_client:
                 mqtt_client.publish(config.mqtt_topic, qos=1, payload=json.dumps(
                     {
-                        "period_begin": str(period_start),
-                        "period_end": str(period_end),
+                        "period_begin": period_start.isoformat(),
+                        "period_end": period_end.isoformat(),
                         "usage":  pulse_count * config.quantum
                     }
                 ))
