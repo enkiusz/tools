@@ -25,6 +25,11 @@ config = SimpleNamespace(
     loglevel="INFO",
     pretend=False,
 
+    # Connection configuration
+
+    # The bitrate of the serial port
+    bitrate=115200,
+
     #
     # DB configuration
     #
@@ -32,9 +37,12 @@ config = SimpleNamespace(
     # Data source name
     ds_name="energy",
 
-    # The step amount is the period of pulse measurement. All pulses from a single period are counted as
-    # a single energy usage value.
-    step=dt.timedelta(seconds=30),
+    # The interval is the time during all pulses are counted as a single energy usage value.
+    interval=dt.timedelta(seconds=30),
+
+    # The amount of measured resource (energy/water/gas) consumed for each pulse. 
+    # The amount of pulses will be multipled by this value before storing in RRD
+    quantum=1.0,
 
     # Both min and max values are not limited (-Inf .. +Inf) to allow for bidirectional flow (like in net energy metering).
     min="U",
@@ -75,11 +83,11 @@ def rrdtool_run(cmd):
     else:
         return 0
 
-def rrd_create(args):
+def rrd_create(config):
 
-    heartbeat = 2 * config.step
+    heartbeat = 2 * config.interval
 
-    log.debug("RRD for source '{}' will use step is '{}' and heartbeat '{}'".format(config.ds_name, config.step, heartbeat))
+    log.debug("RRD for source '{}' will use step is '{}' and heartbeat '{}'".format(config.ds_name, config.interval, heartbeat))
 
     # Data source
     ds_defstring = "DS:{}:ABSOLUTE:{}:{}:{}".format(config.ds_name, heartbeat.seconds, config.min, config.max)
@@ -93,7 +101,7 @@ def rrd_create(args):
 
         log.debug("RRA '{}' stores data in intervals of '{}' for '{}' (xff {})".format(rra_name, interval, duration, xff))
 
-        rra_defstrings.append("RRA:{}:{}:{}:{}".format(cdf, xff, interval // config.step, duration // config.step))
+        rra_defstrings.append("RRA:{}:{}:{}:{}".format(cdf, xff, interval // config.interval, duration // config.interval))
 
     rrdtool_run( "rrdtool create '{}' -s '{}' '{}' {}".format(args.rrdfile, config.step.seconds, ds_defstring, ' '.join(rra_defstrings)) )
 
@@ -116,8 +124,12 @@ def measurement_loop(config):
     if config.port is None:
         config.port=find_arduino_serial()
 
-    step_line = next( filter(lambda line: line.startswith("step = "), subprocess.getoutput("rrdtool info '{}'".format(config.rrdfile)).split("\n")) )
-    period = dt.timedelta(seconds=int(re.match("step\s*=\s*(\d+)", step_line).group(1)))
+    try:
+        step_line = next( filter(lambda line: line.startswith("step = "), subprocess.getoutput("rrdtool info '{}'".format(config.rrdfile)).split("\n")) )
+        period = dt.timedelta(seconds=int(re.match("step\s*=\s*(\d+)", step_line).group(1)))
+    except:
+        # Use the period value from the configuration
+        period = config.interval
 
     log.info("Reading pulses from '{}' with integration period '{}', quantum '{}' and storing to RRD database '{}'".format(args.port, period, args.quantum, args.rrdfile))
 
@@ -143,17 +155,18 @@ def measurement_loop(config):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Process S0 pulses and store readings in an rrd database")
+    parser = argparse.ArgumentParser(description="Process SO pulses and store readings in an rrd database")
     parser.add_argument("--loglevel", default=config.loglevel, help="Log level")
     parser.add_argument("--pretend", action="store_true", default=config.pretend, help="Pretend to update information in RRD")
 
     subparsers = parser.add_subparsers(dest="command", help="sub-commands help")
 
     parser_m = subparsers.add_parser("measure", help="Measure pulses and store in RRD")
-    parser_m.add_argument("-b", "--bitrate", metavar="BPS", default=115200, type=int, help="The bitrate of the serial port")
-    parser_m.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
-    parser_m.add_argument("-q", "--quantum", metavar="QUANTUM", type=float, default=1.0, help="The amount of measured resource (energy/water/gas) consumed for each pulse. The amount of pulses will be multipled by this value before storing in RRD")
     parser_m.add_argument("-p", "--port", metavar="DEV", help="The serial port that connects to the SObasic module")
+    parser_m.add_argument("-b", "--bitrate", metavar="BPS", default=config.bitrate, type=int, help="The bitrate of the serial port")
+    parser_m.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
+    parser_m.add_argument("-q", "--quantum", metavar="QUANTUM", type=float, default=config.quantum, help="The amount of measured resource (energy/water/gas) consumed for each pulse. The amount of pulses will be multipled by this value before storing in RRD")
+    parser_m.add_argument("-i", "--interval", metavar="SEC", type=float, default=config.interval, help="The interval is the time during all pulses are counted as a single energy usage value.")
 
     parser_c = subparsers.add_parser("create", help="Create the SObasic RRD database")
     parser_c.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
@@ -166,9 +179,9 @@ if __name__ == "__main__":
     log.debug("Configuration dump: {}".format(config))
 
     if args.command == "create":
-        sys.exit(rrd_create(args))
+        sys.exit(rrd_create(config))
     elif args.command == "measure":
-        sys.exit(measurement_loop(args))
+        sys.exit(measurement_loop(config))
     else:
         log.fatal("Unknown command '{}'".format(args.command))
         sys.exit(1)
