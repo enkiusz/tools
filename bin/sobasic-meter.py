@@ -78,6 +78,15 @@ config = SimpleNamespace(
     #
     # MQTT configuration
     #
+
+    #
+    # MQTT broker hostname
+    #
+    mqtt_broker=None,
+
+    #
+    # MQTT topic
+    #
     mqtt_topic="energy/kWh"
 
 )
@@ -154,13 +163,22 @@ def measurement_loop(config):
                 if line == "SO pulse":
                     pulse_count += 1
 
+                    if mqtt_client:
+                        mqtt_client.publish(os.path.join(config.mqtt_topic,'pulse'), qos=1, payload=json.dumps(
+                            {
+                                "ts": dt.datetime.now(dt.timezone.utc).isoformat(),
+                                "usage":  config.quantum
+                            }
+                        ))
+
+
             period_end = dt.datetime.now(dt.timezone.utc)
             log.debug("PERIOD '{}' -> '{}' (duration {}) had '{}' pulses".format(period_start.isoformat(), period_end.isoformat(), period_end - period_start, pulse_count))
 
             rrdtool_run("rrdtool update '{}' 'N@{}'".format(config.rrdfile, pulse_count * config.quantum))
 
             if mqtt_client:
-                mqtt_client.publish(config.mqtt_topic, qos=1, payload=json.dumps(
+                mqtt_client.publish(os.path.join(config.mqtt_topic,'summary'), qos=1, payload=json.dumps(
                     {
                         "period_begin": period_start.isoformat(),
                         "period_end": period_end.isoformat(),
