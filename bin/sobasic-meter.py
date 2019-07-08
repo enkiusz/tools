@@ -19,6 +19,7 @@ import datetime as dt
 import serial.tools.list_ports
 from types import SimpleNamespace
 import json
+from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
 
@@ -201,7 +202,7 @@ if __name__ == "__main__":
     parser_m.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
     parser_m.add_argument("-q", "--quantum", metavar="QUANTUM", type=float, default=config.quantum, help="The amount of measured resource (energy/water/gas) consumed for each pulse. The amount of pulses will be multipled by this value before storing in RRD")
     parser_m.add_argument("-i", "--interval", metavar="SEC", type=float, default=config.interval, help="The interval is the time during all pulses are counted as a single energy usage value.")
-    parser_m.add_argument("--mqtt-broker", metavar="NAME", help="Send data to specified MQTT broker")
+    parser_m.add_argument("--mqtt-broker", metavar="NAME", help="Send data to specified MQTT broker URL")
     parser_m.add_argument("--mqtt-topic", metavar="TOPIC", default=config.mqtt_topic, help="Set MQTT topic")
 
     parser_c = subparsers.add_parser("create", help="Create the SObasic RRD database")
@@ -212,14 +213,29 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=getattr(logging, config.loglevel))
     if config.mqtt_broker:
+        broker_url = urlparse(config.mqtt_broker)
+        log.debug("MQTT URL {}".format(broker_url))
+
         import paho.mqtt.client as mqtt
+        import ssl
+
         mqtt_client = mqtt.Client()
+        mqtt_client.enable_logger(logger=log)
+
+        if broker_url.scheme == 'mqtts':
+            log.debug("Initializing MQTT TLS")
+            mqtt_client.tls_set(cert_reqs=ssl.CERT_NONE)
+            mqtt_port = 8883
+        else:
+            mqtt_port = 1883
+
         try:
-            log.info("Connecting to MQTT broker '{}'".format(config.mqtt_broker))
-            mqtt_client.connect(config.mqtt_broker)
+            log.info("Connecting to MQTT broker URL '{}'".format(config.mqtt_broker))
+            mqtt_client.connect(broker_url.netloc, port=mqtt_port)
+            mqtt_client.loop_start()
         except:
             # Connection to broker failed, disable MQTT
-            log.error("Cannot connect to MQTT broker, MQTT will be disabled")
+            log.error("Cannot connect to MQTT broker, MQTT will be disabled", exc_info=True)
 
     log.debug("Configuration dump: {}".format(config))
 
