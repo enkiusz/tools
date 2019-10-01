@@ -4,9 +4,9 @@
 # Copyright 2018 Maciej Grela <enki@fsck.pl>
 # SPDX-License-Identifier: WTFPL
 #
-# Host script for reading pulses from SObasic Arduino interface and storing them into an RRD database.
-# All should be obvious after running SObasic-meter.py --help
-#
+
+## Category: Making the Internet of Things work for you
+## Shortdesc: Host script for reading pulses from SObasic Arduino interface and storing them into an RRD database.
 
 import logging
 import sys
