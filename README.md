@@ -23,6 +23,7 @@ Here is a bunch of scripts that I use more or less often:
 * bin/epc3008-status.py - Scrape and print the status of a Cisco EPC3008 cable modem
 * bin/luci-bwc-log.py - Store the output of OpenWRS's luci-bwc network iface traffic stats into sqlite
 * bin/printerstasi.rb - Summarize info about jobs printed on a RICOH Aficio MP 6001 printer, may work for other Ricoh printers. Uses a reverse-engineered Ricoh MIB (share/mibs/vendor/RICOH-MIB.txt)
+* bin/sobasic-meter.py - Host script for reading pulses from SObasic Arduino interface and storing them into an RRD database.
 
 ## Various:
 * bin/clone-user-repos - Clone all repositories of a particular user from github.com
@@ -30,8 +31,9 @@ Here is a bunch of scripts that I use more or less often:
 * bin/envunpack - Unpacks /proc/${PID}/environ files. Try 'cat /proc/self/environ | envunpack'
 * bin/hdd-surv - A HDD survey script for internet auctions
 * bin/imgurbash.sh - Upload scripts to imgur (from Bart Nagel <bart@tremby.net>)
-* bin/unwrap - Recursively unpack containers. That is, if there are other container files inside they will also be unpacked.
+* bin/merge-parts - Merge parts into a single stream supporting *.d style directories and executable generators.
 * bin/s3metalink - Make a .meta4 Metalink file from an S3 bucket index XML. This allows the bucket to be downloaded by a downloader supporting the metalink format (for example aria2c).
+* bin/unwrap - Recursively unpack containers. That is, if there are other container files inside they will also be unpacked.
 
 ## Wardriving:
 * bin/wiglenet-uploader.py - Uploads wardriving data to wigle.net
