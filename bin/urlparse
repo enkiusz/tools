@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+## Category: Various
+## Shortdesc: Parse and split Resource Identifiers (URLs, GIT_URIs, etc.)
+
+from urllib.parse import urlparse
+import argparse
+import json
+import giturlparse
+import sys
+
+parser = argparse.ArgumentParser(description='Parse and split Resource Identifiers')
+parser.add_argument('uris', metavar='URI', type=str, nargs='+', help='an URI to process')
+parser.add_argument('--mode', '-m', metavar='MODE', type=str, default='urlparse', choices=['urlparse', 'giturlparse'], help='Use a particular parser mode')
+parser.add_argument('--oform', '-O', metavar='FORMAT', help='Output string format, use tokens {XXX} where XXX is the JSON key')
+args = parser.parse_args()
+
+for uri_string in args.uris:
+    if args.mode == 'urlparse':
+        kvp = urlparse(uri_string)._asdict()
+    elif args.mode == "giturlparse":
+        p = giturlparse.parse(uri_string)
+        kvp = p.data
+        kvp.update( { 'valid': p.valid })
+    else:
+        print("Unknown mode '{}', exiting.".format(mode))
+        sys.exit(1)
+
+    if args.oform:
+        print(args.oform.format(**kvp))
+    else:
+        print(json.dumps(kvp))

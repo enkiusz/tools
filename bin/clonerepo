@@ -1,0 +1,13 @@
+#!/bin/sh
+
+## Category: Various
+## Shortdesc: Clone a git repository into a neatly organized local repo root.
+
+readonly REPOS_ROOT="$HOME/repos"
+
+while [ "$1" ]; do
+    giturl="$1"; shift
+    repodir=$REPOS_ROOT/$(urlparse --mode giturlparse "$giturl" -O "{domain}/{owner}/{repo}")
+    mkdir -p "$repodir"
+    git clone "$giturl" "$repodir" 
+done
