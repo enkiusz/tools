@@ -53,22 +53,35 @@ config = SimpleNamespace(
     rra_defs={
         # Prediction RRA
         #
-        # This RRA stores AVERAGE readout in one step intervals for 30 days. This is basically the raw data gathered by the meter.
-        #
+        # This RRA stores AVERAGE readout in one step intervals for 90 days. This is basically the raw data gathered by the meter.
         # It's possible use is load prediction and general graphing of short-term data.
         #
         "prediction": {
             "cdf": "AVERAGE",
             "xff": 0.5,
             "interval": dt.timedelta(seconds=30),
-            "duration": dt.timedelta(days=30)
+            "duration": dt.timedelta(days=90)
         },
 
-        # System dimensioning RRA
+	    # Energy storage RRA
+	    #
+	    # The daily storage RRA stores the AVERAGE readouts in 24h intervals for 10 years.
+	    # The average amount of energy used during each day is useful for capacity dimensioning of powerwalls and other home energy storage
+	    # devices which should provide energy during the night (for example with PV panels).
         #
-        # The system dimensioning RRA stores MAX readout in one hour intervals for 365 days.
-        # This data is useful for dimensioning of backup power or solar inverters max kW ratings
-        "dimensioning": {
+	    "diurnal-cycle": {
+	        "cdf": "AVERAGE",
+	        "xff": 0.5,
+	        "interval": dt.timedelta(hours=24),
+	        "duration": dt.timedelta(days=10 * 365)
+	    },
+
+        # Power dimensioning RRA
+        #
+        # The power dimensioning RRA stores MAX readout in one hour intervals for 365 days.
+        # This data is useful for dimensioning of inverter power ratings required.
+        #
+        "power-dimensioning": {
             "cdf": "MAX",
             "xff": 0.5,
             "interval": dt.timedelta(hours=1),
@@ -120,7 +133,7 @@ def rrd_create(config):
 
         rra_defstrings.append("RRA:{}:{}:{}:{}".format(cdf, xff, interval // config.interval, duration // config.interval))
 
-    rrdtool_run( "rrdtool create '{}' -s '{}' '{}' {}".format(args.rrdfile, config.step.seconds, ds_defstring, ' '.join(rra_defstrings)) )
+    rrdtool_run( "rrdtool create {} '{}' -s '{}' '{}' {}".format("--start '{}'".format(config.start) if config.start else '' , args.rrdfile, config.interval.seconds, ds_defstring, ' '.join(rra_defstrings)) )
 
 #
 # Try to find the first Arduino serial port
@@ -207,6 +220,7 @@ if __name__ == "__main__":
 
     parser_c = subparsers.add_parser("create", help="Create the SObasic RRD database")
     parser_c.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
+    parser_c.add_argument("--start", metavar="UNIX_TIMESTAMP", help="The start timestamp for the RRD database")
 
     args = parser.parse_args()
     config.__dict__.update(vars(args))
