@@ -51,7 +51,7 @@ optparse = OptionParser.new do|opts|
      options[:badblocks] = 1
    end
 
-   opts.on( '--smartupload', 'Upload SMART data using wgetpaste' ) do
+   opts.on( '--smartupload', 'Upload SMART data using pastebinit' ) do
      options[:smartupload] = 1
    end
 
@@ -140,7 +140,7 @@ optparse = OptionParser.new do|opts|
   smart_data_file.write(smart_data)
   smart_data_file.close()
   if options[:smartupload] == 1
-    paste_url = `cat #{smart_data_filename} | wgetpaste --raw`.chomp()
+    paste_url = `pastebinit -i "#{smart_data_filename}"`.chomp()
   end
 
   if options[:badblocks] == 1
@@ -150,13 +150,16 @@ optparse = OptionParser.new do|opts|
     if options[:wipe] == 1
       # Options: Destructive write test (first write pattern then read it back and compare)
       puts "Running destructive write test"
-      system "sudo badblocks -o '#{badblocks_filename}' -e 1 -sv -w -t random '#{dev}'"
+      system "sudo badblocks -o '#{badblocks_filename}' -sv -w -t random '#{dev}'"
     else
     # Options: Non-destructive read-write test (first write pattern then read it back and compare)
       puts "Running non-destructive read-write test"
-      system "sudo badblocks -o '#{badblocks_filename}' -e 1 -sv -n -t random '#{dev}'"
+      system "sudo badblocks -o '#{badblocks_filename}' -sv -n -t random '#{dev}'"
     end
-    # TODO check if hard disk had bad blocks and MARK
+
+    badblocks_count = 0
+    File.open(filename) {|f| badblocks_count = f.read.count("\n")}
+
   end
 
   if options[:wipe] == 1 and options[:badblocks] == 0
@@ -178,7 +181,11 @@ optparse = OptionParser.new do|opts|
   auction_file.puts("<p>Rozmiar talerza: #{options[:platter_size]}''</p>")
   auction_file.puts("<p>Interfejs: #{options[:iface_type]}</p>")
   auction_file.puts("<br>\n")
-  auction_file.puts("<p>Dysk jest sprawny, nie ma bad sectorów.</p>")
+  if badblocks_count == 0
+    auction_file.puts("<p>Dysk jest sprawny, nie ma bad sectorów.</p>")
+  else
+    auction_file.puts("<p>Dysk jest sprawny, podczas sprawdzania narzędziem badblocks znaleziono na nim #{badblocks_count} bad sectorów.</p>")
+  end
   auction_file.puts("<br>\n")
   auction_file.puts("<p>Stan wizualny widoczny jest na zdjęciu.</p>")
   auction_file.puts("<br>\n")
