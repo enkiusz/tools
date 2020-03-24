@@ -18,6 +18,7 @@
 #%- iso images -> requires '7z'
 #%- ipa images -> requires 'unzip'
 #%- docx files -> requires 'unzip'
+#%- cpio files -> requires 'cpio'
 #%
 #%Usage: unwrap [-C <destdir>] [-v] [-x] [-h] <container_1> <container_2> ... <container_n>
 #%
@@ -71,6 +72,7 @@ while [ "$1" ]; do
   *.deb) suffix='.deb'; unpack_cmd='dpkg-deb -x "$container"  "$unwrap_dir"';;
   *.udeb) suffix='.udeb'; unpack_cmd='dpkg-deb -x "$container"  "$unwrap_dir"';;
   *.iso) suffix='.iso'; unpack_cmd='if [ -z "$verbose" ]; then 7z x -o"$unwrap_dir" "$container" > /dev/null; else 7z x -o"$unwrap_dir" "$container"; fi';;
+	*.cpio) suffix='.cpio'; unpack_cmd='cpio -id${verbose:+}v "$unwrap_dir" < "$container"';;
 	*)  # This file is not an container we know, skip
 	    echo "$container: Skipping, not an container type we know"
 	    continue;;
@@ -87,7 +89,7 @@ while [ "$1" ]; do
 	# fork() on Cygwin is very slow
 
 	case "$file" in
-	    *.zip|*.jar|*.tar|*.apk|*.ipa|*.docx|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb|*.udeb|*.iso)
+	    *.zip|*.jar|*.tar|*.apk|*.ipa|*.docx|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb|*.udeb|*.iso|*.cpio)
 		      unwrap -C $(dirname "$file") ${hash_filename:+-H $hash_filename} ${remove_container:+-x} "$file";;
       *)
           if [ -n "$hash_filename" ]; then
