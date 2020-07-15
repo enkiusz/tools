@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## Category: Various
 ## Shortdesc: Recursively unpack containers. That is, if there are other container files inside they will also be unpacked.
@@ -78,9 +78,17 @@ while [ "$1" ]; do
 	    continue;;
     esac
 
-    unwrap_dir="$destdir/$(basename "$container" "$suffix")"
+    container_dir="$(basename "$container" "$suffix")"
+    unwrap_dir="$destdir/$container_dir"
     [ "$verbose" ] && echo "$container: Unwrapping files into '$unwrap_dir'"
     mkdir -p "$unwrap_dir" && unwrap_dir=$unwrap_dir container=$container eval $unpack_cmd
+
+    # Check for asdf.zip containing asdf/ which gets unwrapped into asdf/asdf/
+    if find "$unwrap_dir" -maxdepth 1 -mindepth 1 -type d -name "$container_dir" | grep -q "$container_dir/$container_dir"; then
+        # Remove unneeded directory
+        ( shopt -s dotglob; mv "$unwrap_dir/$container_dir"/* "$unwrap_dir/" )
+        rmdir "$unwrap_dir/$container_dir" || ( echo "Someting is very wrong, '$unwrap_dir/$container_dir' should be empty"; exit 1 )
+    fi
 
     # Search for other containers inside the extracted container
     find "$unwrap_dir" -type f | while read file; do
