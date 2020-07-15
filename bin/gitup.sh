@@ -3,7 +3,7 @@
 ## Category: Daily/maintenance
 ## Shortdesc: Pull from origin in all cloned repositories
 
-readonly REPOS_BASE="$HOME/repos"
+readonly REPOS_BASE="${REPOS_BASE:-$HOME/repos}"
 
 # Colors
 readonly BLACK=0 RED=1 GREEN=2 YELLOW=2 BLUE=4 MAGENTA=5 CYAN=6 WHITE=7

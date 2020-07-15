@@ -3,7 +3,7 @@
 ## Category: Various
 ## Shortdesc: Clone a git repository into a neatly organized local repo root.
 
-readonly REPOS_ROOT="$HOME/repos"
+REPOS_ROOT="${REPOS_ROOT:-$HOME/repos}"
 
 while [ "$1" ]; do
     giturl="$1"; shift
