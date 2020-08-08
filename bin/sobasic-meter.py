@@ -174,10 +174,10 @@ def serial_pulse_source(config):
 
     # Set the timeout so that it corresponds to the period
     with serial.Serial(config.port, config.bitrate, timeout=config.period.seconds // 2) as ser:
-
-        line = ser.readline().decode('ascii').rstrip()
-        log.debug("Serial read: '{}'".format(line))
-        yield dict(ts=dt.datetime.now(dt.timezone.utc, info=line, usage=config.quantum))
+        while True:
+            line = ser.readline().decode('ascii').rstrip()
+            log.debug("Serial read: '{}'".format(line))
+            yield dict(ts=dt.datetime.now(dt.timezone.utc), info=line, usage=config.quantum)
 
 def measurement_loop(config, source):
 
@@ -266,7 +266,6 @@ if __name__ == "__main__":
             mqtt_port = 8883
         else:
             mqtt_port = 1883
-            mqtt_port = 9999 # debug
 
         try:
             mqtt_thread = threading.Thread(target=mqtt_loop, args=(config,))
