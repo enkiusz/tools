@@ -20,6 +20,9 @@ import serial.tools.list_ports
 from types import SimpleNamespace
 import json
 from urllib.parse import urlparse
+import time
+import random
+import threading
 
 log = logging.getLogger(__name__)
 
@@ -101,8 +104,13 @@ config = SimpleNamespace(
     #
     # MQTT topic
     #
-    mqtt_topic="energy/kWh"
+    mqtt_topic="energy/kWh",
 
+    #
+    # The fake pulse interval.
+    # Fake pulses are generated in random intervals between [0, fake_pulse_interval] seconds.
+    #
+    fake_pulse_interval=5
 )
 
 def rrdtool_run(cmd):
@@ -148,11 +156,30 @@ def find_arduino_serial():
     log.debug("Using first available port with an Arduion: {} (description '{}' hwid '{}')".format(port, desc, hwid))
     return port
 
+def fake_pulse_source(config):
+    i = 0
+    while True:
 
-def measurement_loop(config):
+        yield dict(ts=dt.datetime.now(dt.timezone.utc), i=i, info='SO pulse', usage=config.quantum)
+        time.sleep(config.fake_pulse_interval * random.random())
+
+        i += 1
+
+def serial_pulse_source(config):
 
     if config.port is None:
         config.port=find_arduino_serial()
+
+    log.info("Reading pulses from serial port '{}'".format(config.port))
+
+    # Set the timeout so that it corresponds to the period
+    with serial.Serial(config.port, config.bitrate, timeout=config.period.seconds // 2) as ser:
+
+        line = ser.readline().decode('ascii').rstrip()
+        log.debug("Serial read: '{}'".format(line))
+        yield dict(ts=dt.datetime.now(dt.timezone.utc, info=line, usage=config.quantum))
+
+def measurement_loop(config, source):
 
     try:
         step_line = next( filter(lambda line: line.startswith("step = "), subprocess.getoutput("rrdtool info '{}'".format(config.rrdfile)).split("\n")) )
@@ -161,45 +188,41 @@ def measurement_loop(config):
         # Use the period value from the configuration
         period = config.interval
 
+    config.period = period
+
     log.info("Reading pulses from '{}' with integration period '{}', quantum '{}' and storing to RRD database '{}'".format(args.port, period, args.quantum, args.rrdfile))
 
-    # Set the timeout so that it corresponds to the period
-    with serial.Serial(args.port, args.bitrate, timeout=period.seconds // 2) as ser:
+    while True:
+        period_start = dt.datetime.now(dt.timezone.utc)
+        log.debug("Period start '{}'".format(period_start.isoformat()))
+        pulse_count = 0
 
-        while True:
-            period_start = dt.datetime.now(dt.timezone.utc)
-            log.debug("Period start '{}'".format(period_start.isoformat()))
-            pulse_count = 0
+        period = config.interval
+        while dt.datetime.now(dt.timezone.utc) - period_start < period:
+            pulse = next(source)
 
-            while dt.datetime.now(dt.timezone.utc) - period_start < period:
-                line = ser.readline().decode('ascii').rstrip()
-                log.debug("READ: '{}'".format(line))
-                if line == "SO pulse":
-                    pulse_count += 1
+            log.debug("from source '{}'".format(pulse))
+            if pulse['info'] == "SO pulse":
+                pulse_count += 1
 
-                    if mqtt_client:
-                        mqtt_client.publish(os.path.join(config.mqtt_topic,'pulse'), qos=1, payload=json.dumps(
-                            {
-                                "ts": dt.datetime.now(dt.timezone.utc).isoformat(),
-                                "usage":  config.quantum
-                            }
-                        ))
+                if mqtt_client:
+                    pulse['ts'] = pulse['ts'].isoformat() # TypeError: Object of type datetime is not JSON serializable
+                    mqtt_client.publish(os.path.join(config.mqtt_topic,'pulse'), qos=1, payload=json.dumps(pulse))
 
+        period_end = dt.datetime.now(dt.timezone.utc)
+        log.debug("PERIOD '{}' -> '{}' (duration {}) had '{}' pulses".format(period_start.isoformat(), period_end.isoformat(), period_end - period_start, pulse_count))
 
-            period_end = dt.datetime.now(dt.timezone.utc)
-            log.debug("PERIOD '{}' -> '{}' (duration {}) had '{}' pulses".format(period_start.isoformat(), period_end.isoformat(), period_end - period_start, pulse_count))
+        rrdtool_run("rrdtool update '{}' 'N@{}'".format(config.rrdfile, pulse_count * config.quantum))
 
-            rrdtool_run("rrdtool update '{}' 'N@{}'".format(config.rrdfile, pulse_count * config.quantum))
+        if mqtt_client:
+            mqtt_client.publish(os.path.join(config.mqtt_topic,'summary'), qos=1, payload=json.dumps(
+                dict(period_begin=period_start.isoformat(), period_end=period_end.isoformat(), usage=pulse_count * config.quantum)
+            ))
 
-            if mqtt_client:
-                mqtt_client.publish(os.path.join(config.mqtt_topic,'summary'), qos=1, payload=json.dumps(
-                    {
-                        "period_begin": period_start.isoformat(),
-                        "period_end": period_end.isoformat(),
-                        "usage":  pulse_count * config.quantum
-                    }
-                ))
-    return 0
+    return 1
+
+def mqtt_loop(config):
+    mqtt_client.loop_forever(retry_first_connection=True)
 
 if __name__ == "__main__":
 
@@ -217,6 +240,7 @@ if __name__ == "__main__":
     parser_m.add_argument("-i", "--interval", metavar="SEC", type=float, default=config.interval, help="The interval is the time during all pulses are counted as a single energy usage value.")
     parser_m.add_argument("--mqtt-broker", metavar="NAME", help="Send data to specified MQTT broker URL")
     parser_m.add_argument("--mqtt-topic", metavar="TOPIC", default=config.mqtt_topic, help="Set MQTT topic")
+    parser_m.add_argument("--fake-pulses", action='store_true', default=False, help="Generate fake pulses instead of reading them from the serial port")
 
     parser_c = subparsers.add_parser("create", help="Create the SObasic RRD database")
     parser_c.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
@@ -242,21 +266,31 @@ if __name__ == "__main__":
             mqtt_port = 8883
         else:
             mqtt_port = 1883
+            mqtt_port = 9999 # debug
 
         try:
+            mqtt_thread = threading.Thread(target=mqtt_loop, args=(config,))
+            mqtt_thread.start()
+
             log.info("Connecting to MQTT broker URL '{}'".format(config.mqtt_broker))
             mqtt_client.connect(broker_url.netloc, port=mqtt_port)
-            mqtt_client.loop_start()
         except:
             # Connection to broker failed, disable MQTT
             log.error("Cannot connect to MQTT broker, MQTT will be disabled", exc_info=True)
+    else:
+        mqtt_client = None
 
     log.debug("Configuration dump: {}".format(config))
+
+    if config.fake_pulses:
+        source = fake_pulse_source(config)
+    else:
+        source = serial_pulse_source(config)
 
     if args.command == "create":
         sys.exit(rrd_create(config))
     elif args.command == "measure":
-        sys.exit(measurement_loop(config))
+        sys.exit(measurement_loop(config, source))
     else:
         log.fatal("Unknown command '{}'".format(args.command))
         sys.exit(1)
