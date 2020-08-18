@@ -23,7 +23,9 @@ from urllib.parse import urlparse
 import time
 import random
 import threading
+import pint
 
+ureg = pint.UnitRegistry()
 log = logging.getLogger(__name__)
 
 config = SimpleNamespace(
@@ -46,8 +48,15 @@ config = SimpleNamespace(
     interval=dt.timedelta(seconds=30),
 
     # The amount of measured resource (energy/water/gas) consumed for each pulse. 
-    # The amount of pulses will be multipled by this value before storing in RRD
+    # The amount of pulses will be multipled by this value before storing in RRD or sending to the MQTT server.
     quantum=1.0,
+
+    #
+    # Units for the measured resource (optional). If not defined electrical energy is assumed.
+    # Note, that the RRD database doesn't store unit information, this is used only when the
+    # data is sent to an MQTT server.
+    resource_unit="Wh", # The unit for the actual resource (kWh, m^3, etc.)
+    rate_unit="W", # The unit for the resource consumption rate (W, liters/s, etc.)
 
     # Both min and max values are not limited (-Inf .. +Inf) to allow for bidirectional flow (like in net energy metering).
     min="U",
@@ -158,9 +167,21 @@ def find_arduino_serial():
 
 def fake_pulse_source(config):
     i = 0
+    prev_ts = dt.datetime.now(dt.timezone.utc)
+    time.sleep(1) # Ensure always ts != prev_ts
+
     while True:
 
-        yield dict(ts=dt.datetime.now(dt.timezone.utc), i=i, info='SO pulse', usage=config.quantum)
+        ts = dt.datetime.now(dt.timezone.utc)
+        rate = ureg.parse_expression("({} {}) / ({} s)".format(
+            config.quantum, config.resource_unit, (ts - prev_ts).total_seconds())
+        )
+        yield dict(ts=ts, i=i, info='SO pulse',
+            usage={'value': config.quantum, 'unit': config.resource_unit},
+            rate=dict(value=rate.m_as(config.rate_unit), unit=config.rate_unit)
+        )
+
+        prev_ts = ts
         time.sleep(config.fake_pulse_interval * random.random())
 
         i += 1
@@ -174,10 +195,27 @@ def serial_pulse_source(config):
 
     # Set the timeout so that it corresponds to the period
     with serial.Serial(config.port, config.bitrate, timeout=config.period.seconds // 2) as ser:
+        prev_ts = dt.datetime.now(dt.timezone.utc)
+        time.sleep(1) # Ensure always ts != prev_ts
+
         while True:
             line = ser.readline().decode('ascii').rstrip()
-            log.debug("Serial read: '{}'".format(line))
-            yield dict(ts=dt.datetime.now(dt.timezone.utc), info=line, usage=config.quantum)
+            if len(line) == 0:
+                continue
+
+            log.debug("Serial read line: '{}'".format(line))
+
+            ts = dt.datetime.now(dt.timezone.utc)
+            rate = ureg.parse_expression("({} {}) / ({} s)".format(
+                config.quantum, config.resource_unit, (ts - prev_ts).total_seconds())
+            )
+            yield dict(ts=ts, info=line,
+                usage={'value': config.quantum, 'unit': config.resource_unit},
+                rate=dict(value=rate.m_as(config.rate_unit), unit=config.rate_unit)
+            )
+            prev_ts = ts
+
+
 
 def measurement_loop(config, source):
 
@@ -216,7 +254,8 @@ def measurement_loop(config, source):
 
         if mqtt_client:
             mqtt_client.publish(os.path.join(config.mqtt_topic,'summary'), qos=1, payload=json.dumps(
-                dict(period_begin=period_start.isoformat(), period_end=period_end.isoformat(), usage=pulse_count * config.quantum)
+                dict(period_begin=period_start.isoformat(), period_end=period_end.isoformat(),
+                    usage={ 'value': pulse_count * config.quantum, 'unit': config.resource_unit})
             ))
 
     return 1
@@ -237,6 +276,8 @@ if __name__ == "__main__":
     parser_m.add_argument("-b", "--bitrate", metavar="BPS", default=config.bitrate, type=int, help="The bitrate of the serial port")
     parser_m.add_argument("-r", "--rrdfile", metavar="RRDFILE", required=True, help="The RRD database file")
     parser_m.add_argument("-q", "--quantum", metavar="QUANTUM", type=float, default=config.quantum, help="The amount of measured resource (energy/water/gas) consumed for each pulse. The amount of pulses will be multipled by this value before storing in RRD")
+    parser_m.add_argument("--resource-unit", metavar="UNIT", default=config.resource_unit, help="The unit of the measured resource (Wh, kWh, m^3, etc.)")
+    parser_m.add_argument("--rate-unit", metavar="UNIT", default=config.rate_unit, help="The unit of the reported resource consumption rate (W, liters/s, etc.)")
     parser_m.add_argument("-i", "--interval", metavar="SEC", type=float, default=config.interval, help="The interval is the time during all pulses are counted as a single energy usage value.")
     parser_m.add_argument("--mqtt-broker", metavar="NAME", help="Send data to specified MQTT broker URL")
     parser_m.add_argument("--mqtt-topic", metavar="TOPIC", default=config.mqtt_topic, help="Set MQTT topic")
