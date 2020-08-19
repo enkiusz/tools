@@ -167,21 +167,9 @@ def find_arduino_serial():
 
 def fake_pulse_source(config):
     i = 0
-    prev_ts = dt.datetime.now(dt.timezone.utc)
-    time.sleep(1) # Ensure always ts != prev_ts
 
     while True:
-
-        ts = dt.datetime.now(dt.timezone.utc)
-        rate = ureg.parse_expression("({} {}) / ({} s)".format(
-            config.quantum, config.resource_unit, (ts - prev_ts).total_seconds())
-        )
-        yield dict(ts=ts, i=i, info='SO pulse',
-            usage={'value': config.quantum, 'unit': config.resource_unit},
-            rate=dict(value=rate.m_as(config.rate_unit), unit=config.rate_unit)
-        )
-
-        prev_ts = ts
+        yield dict(ts=dt.datetime.now(dt.timezone.utc), i=i, info='SO pulse', usage=1)
         time.sleep(config.fake_pulse_interval * random.random())
 
         i += 1
@@ -195,8 +183,6 @@ def serial_pulse_source(config):
 
     # Set the timeout so that it corresponds to the period
     with serial.Serial(config.port, config.bitrate, timeout=config.period.seconds // 2) as ser:
-        prev_ts = dt.datetime.now(dt.timezone.utc)
-        time.sleep(1) # Ensure always ts != prev_ts
 
         while True:
             line = ser.readline().decode('ascii').rstrip()
@@ -204,17 +190,7 @@ def serial_pulse_source(config):
                 continue
 
             log.debug("Serial read line: '{}'".format(line))
-
-            ts = dt.datetime.now(dt.timezone.utc)
-            rate = ureg.parse_expression("({} {}) / ({} s)".format(
-                config.quantum, config.resource_unit, (ts - prev_ts).total_seconds())
-            )
-            yield dict(ts=ts, info=line,
-                usage={'value': config.quantum, 'unit': config.resource_unit},
-                rate=dict(value=rate.m_as(config.rate_unit), unit=config.rate_unit)
-            )
-            prev_ts = ts
-
+            yield dict(ts=dt.datetime.now(dt.timezone.utc), info=line, usage=1)
 
 
 def measurement_loop(config, source):
@@ -236,6 +212,7 @@ def measurement_loop(config, source):
         pulse_count = 0
 
         period = config.interval
+        prev_ts = None
         while dt.datetime.now(dt.timezone.utc) - period_start < period:
             pulse = next(source)
 
@@ -243,9 +220,21 @@ def measurement_loop(config, source):
             if pulse['info'] == "SO pulse":
                 pulse_count += 1
 
+                ts = pulse['ts']
+
+                pulse['usage'] = dict(value=pulse['usage'] * config.quantum, unit=config.resource_unit)
+                if prev_ts:
+                    rate = ureg.parse_expression("({} {}) / ({} s)".format(
+                        config.quantum, config.resource_unit, (ts - prev_ts).total_seconds())
+                    )
+                    pulse['rate'] = dict(value=round(rate.m_as(config.rate_unit), 3), unit=config.rate_unit)
+
                 if mqtt_client:
                     pulse['ts'] = pulse['ts'].isoformat() # TypeError: Object of type datetime is not JSON serializable
+                    log.debug("Sending to MQTT topic '{}': {}'".format(config.mqtt_topic, json.dumps(pulse)))
                     mqtt_client.publish(os.path.join(config.mqtt_topic,'pulse'), qos=1, payload=json.dumps(pulse))
+
+                prev_ts = ts
 
         period_end = dt.datetime.now(dt.timezone.utc)
         log.debug("PERIOD '{}' -> '{}' (duration {}) had '{}' pulses".format(period_start.isoformat(), period_end.isoformat(), period_end - period_start, pulse_count))
