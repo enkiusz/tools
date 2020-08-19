@@ -292,7 +292,6 @@ if __name__ == "__main__":
 
         if broker_url.scheme == 'mqtts':
             log.debug("Initializing MQTT TLS")
-            mqtt_client.tls_set(cert_reqs=ssl.CERT_NONE)
             mqtt_port = 8883
         else:
             mqtt_port = 1883
