@@ -206,13 +206,13 @@ def measurement_loop(config, source):
 
     log.info("Reading pulses from '{}' with integration period '{}', quantum '{}' and storing to RRD database '{}'".format(args.port, period, args.quantum, args.rrdfile))
 
+    prev_ts = None
     while True:
         period_start = dt.datetime.now(dt.timezone.utc)
         log.debug("Period start '{}'".format(period_start.isoformat()))
         pulse_count = 0
 
         period = config.interval
-        prev_ts = None
         while dt.datetime.now(dt.timezone.utc) - period_start < period:
             pulse = next(source)
 
