@@ -1,0 +1,8 @@
+#!/bin/sh
+
+STOW_DIR="$1"; shift
+
+mkdir "$STOW_DIR/tools"
+mkdir "$STOW_DIR/tools/.local"
+
+ln -s $PWD/bin $STOW_DIR/tools/.local/
