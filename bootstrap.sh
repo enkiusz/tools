@@ -25,7 +25,8 @@ if [ "$(uname)" == "Darwin" ]; then
 
 	which -s brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 
-	brew install stow
+	# Coreutils is needed for the realpath tool
+	brew install stow coreutils
 
 elif [ "$(uname)" == "Linux" ]; then
 
@@ -52,8 +53,12 @@ pip3 install giturlparse
 # Create stow package
 (
 	cd "$REPOS_ROOT/github.com/mgrela/tools"
-	export PATH="$PWD:$PATH"
-	makepkgs "$STOW_DIR"
+
+	# This is needed only because we are bootstrapping an we don't have the tools
+	# stowed yet in a directory available in PATH
+	export PATH="$PWD/bin:$PATH"
+
+	./makepkgs
 )
 
 # Stow tools
@@ -71,4 +76,3 @@ echo ""
 echo ""
 
 rm -r "$TMPDIR"
-
