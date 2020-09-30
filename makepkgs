@@ -1,8 +1,63 @@
 #!/bin/sh
 
-STOW_DIR="$1"; shift
+# Configuration
+if [ -z "$STOW_DIR" ]; then
+        STOW_DIR="$HOME/stow"
+fi
+if [ -z "$PKG_NAME" ]; then
+	PKG_NAME=$(basename $PWD)
+fi
+if [ -z "$DEFAULT_TARGET" ]; then
+	DEFAULT_TARGET=".local/"
+fi
 
-mkdir "$STOW_DIR/tools"
-mkdir "$STOW_DIR/tools/.local"
+echo "Creating stow pkg '$PKG_NAME' in '$STOW_DIR'"
 
-ln -s $PWD/bin $STOW_DIR/tools/.local/
+PKG_DIR="$STOW_DIR/$PKG_NAME"
+mkdir "$PKG_DIR"
+
+while [ "$1" ]; do
+	echo "$1" | (IFS=":"; while read name target; do
+
+		if [ -z "$name" ]; then
+			echo "Name must be specified"
+			break
+		fi
+		if [ -z "$target" ]; then
+			echo "Name '$name' doesn't specify target, '$DEFAULT_TARGET' is assumed"
+			target="$DEFAULT_TARGET"
+		fi
+
+		# Examples
+		# bin:.local/ == .local/bin -> bin
+		# bin:.local/bin == .local/bin -> bin
+		# script.sh:.local/bin => .local/bin/script.sh -> script.sh
+		# script.sh:.local/bin/newname.sh => .local/bin/newname.sh
+		# bin/run.py:.local/bin => .local/bin/run.py -> bin/run.py
+		# python/module.py:.local/lib/python3.6/site-packages => .local/lib/python3.6/site-packages -> python/module.py
+
+		if expr $target : ".*/$" > /dev/null; then
+			# There is a slash at the end of the target
+			# Target is a directory which needs to be created
+
+			mkdir -p "$PKG_DIR/$target"
+		else
+			if [ -n $(dirname "$target") ]; then
+				# The target is a path a/b/c where a/b needs to be created
+				mkdir -p $PKG_DIR/$(dirname "$target")
+			fi
+		fi
+
+		# Stow doesn't want to link packages where there are absolute symlinks inside:
+		# % stow spacemacs
+		# WARNING! stowing spacemacs would cause conflicts:
+		#   * source is an absolute symlink stow/spacemacs/.emacs.d => /home/enki/repos/github.com/syl20bnr/spacemacs/.
+		# All operations aborted.
+		#
+		# Therefore we need the realpath command to make the path relative wrt. the package directory
+
+		ln -sv $(realpath --relative-to=$PKG_DIR "$PWD/$name") "$PKG_DIR/$target"
+
+	done )
+	shift
+done
