@@ -11,6 +11,8 @@ if [ -z "$DEFAULT_TARGET" ]; then
 	DEFAULT_TARGET=".local/"
 fi
 
+[ $# == 0 ] && exit 1
+
 echo "Creating stow pkg '$PKG_NAME' in '$STOW_DIR'"
 
 PKG_DIR="$STOW_DIR/$PKG_NAME"
