@@ -56,7 +56,7 @@ while [ "$1" ]; do
 		#
 		# Therefore we need the realpath command to make the path relative wrt. the package directory
 
-		ln -sv $(realpath --relative-to=$PKG_DIR "$PWD/$name") "$PKG_DIR/$target"
+		ln -sv $(realpath --relative-to="$PKG_DIR/$target" "$PWD/$name") "$PKG_DIR/$target"
 
 	done )
 	shift
