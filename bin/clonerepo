@@ -7,7 +7,21 @@ REPOS_ROOT="${REPOS_ROOT:-$HOME/repos}"
 
 while [ "$1" ]; do
     giturl="$1"; shift
-    repodir=$REPOS_ROOT/$(urlparse --mode giturlparse "$giturl" -O "{domain}/{owner}/{repo}")
+    git_platform=$(urlparse --mode giturlparse "$giturl" -O "{platform}")
+
+    case $git_platform in
+        github|gitlab)
+            repodir=$REPOS_ROOT/$(urlparse --mode giturlparse "$giturl" -O "{domain}/{owner}/{repo}")
+            ;;
+        base)
+            repodir=$REPOS_ROOT/$(urlparse --mode giturlparse "$giturl" -O "{domain}/{repo}")
+            ;;
+        *)
+            echo "Don't know how to handle platform '$platform'" >&2
+            exit 1
+            ;;
+    esac
+
     mkdir -p "$repodir"
     git clone "$giturl" "$repodir" 
 done
