@@ -1,0 +1,76 @@
+#!/bin/sh
+
+## Category: Daily/maintenance
+## Shortdesc: Rsync directories (datasets) to a remote encrypted storage tank, post stats to influxdb
+
+#
+# Configuration is performed using the following environment variables:
+#
+
+# TANK_KEY='<FSCRYPT KEY>' (optional)
+# TANK_LOCATION="<TANK SSH user@hostname>"
+# TANK_DEST='<PATH INSIDE TANK>'
+
+# INFLUXDB_V2_URL="http://localhost:8080"
+# INFLUXDB_V2_ORG="<ORGANIZATION ID>"
+# INFLUXDB_V2_TOKEN="<ACCESS TOKEN>"
+# INFLUXDB_V2_BUCKET="<BUCKET>"
+
+tank_activate() {
+    if [ -n "TANK_KEY" ]; then
+        key_descr=$(echo $TANK_KEY | base64 -d | ssh "$TANK_LOCATION" fscryptctl insert_key)
+        export tank_keyhandle=$(ssh "$TANK_LOCATION" keyctl show | grep "fscrypt:$key_descr" | awk '{print $1;}')
+    fi
+
+    # Activate optional VGs
+    ssh "$TANK_LOCATION" vgchange -a ay
+}
+
+tank_deactivate() {
+    # Unmount tank
+    ssh "$TANK_LOCATION" systemctl --quiet stop mnt-tank.mount
+
+    # Deactivate optional VGs
+    ssh "$TANK_LOCATION" vgchange -a n
+
+    if [ -n "$tank_keyhandle" ]; then
+        ssh "$TANK_LOCATION" keyctl unlink "$tank_keyhandle"
+        unset tank_keyhandle
+
+        # Attempt to drop plaintexts
+        ssh "$TANK_LOCATION" 'echo 3 > /proc/sys/vm/drop_caches'
+    fi
+}
+
+cleanup() {
+    tank_deactivate
+    rm "$rsync_log"
+}
+trap cleanup 1 2 3 6
+
+if ! tank_activate; then
+    tank_deactivate
+    exit 1
+fi
+
+rsync_log=$(mktemp)
+
+dest="$TANK_LOCATION":"$TANK_DEST"
+while [ "$1" ]; do
+    src="$1"; shift
+    echo "Syncing '$src' to '$dest'"
+
+    start_ts=$(date '+%s.%N')
+    rsync --stats -av "$src" "$dest" 2>&1 | tee "$rsync_log"
+    end_ts=$(date '+%s.%N')
+
+    if [ -n "$INFLUXDB_V2_URL" ]; then
+        curl -s -X POST "$INFLUXDB_V2_URL/api/v2/write?org=$INFLUXDB_V2_ORG&bucket=$INFLUXDB_V2_BUCKET&precision=s" \
+             -w 'write to influxdb %{url_effective} -> %{response_code}\n' \
+             -H "Authorization: Token $INFLUXDB_V2_TOKEN" \
+             --data-raw "$(rsync-stats2influx -name=$src -src=$(hostname):$(realpath $src) -dest=$dest -start_ts=$start_ts -end_ts=$end_ts -- $rsync_log)"
+    fi
+    rm "$rsync_log"
+done
+
+tank_deactivate

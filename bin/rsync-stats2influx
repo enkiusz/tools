@@ -1,0 +1,29 @@
+#!/usr/bin/env -S perl -sn
+BEGIN {
+    $ts = time();
+}
+if (/Number of files: ([\d,]+) \(reg: ([\d,]+), dir: ([\d,]+)\)/) { $total_files = $1;  $reg_files = $2; $dirs = $3; }
+if (/Number of files: ([\d,]+) \(reg: ([\d,]+), dir: ([\d,]+), link: ([\d,]+)\)/) { $total_files = $1;  $reg_files = $2; $dirs = $3; $links = $4; }
+if (/Number of created files: ([\d,]+)/) { $num_created_files = $1; }
+if (/Number of deleted files: ([\d,]+)/) { $num_deleted_files = $1; }
+if (/Number of regular files transferred: ([\d,]+)/) { $num_xfered_files = $1; }
+if (/Total file size: ([\d,]+) bytes/) { $total_size = $1; }
+if (/Total transferred file size: ([\d,]+) bytes/) { $total_xfer_size = $1; }
+if (/Literal data: ([\d,]+) bytes/) { $literal_data = $1; }
+if (/Matched data: ([\d,]+) bytes/) { $matched_data = $1; }
+if (/File list size: ([\d,]+)/) { $file_list_size = $1; }
+if (/File list generation time: ([\d,.]+) seconds/) { $filelist_scan_time = $1; }
+if (/File list transfer time: ([\d,.]+) seconds/) { $filelist_xfer_time = $1; }
+if (/Total bytes sent: ([\d,]+)/) { $total_bytes_sent = $1; }
+if (/Total bytes received: ([\d,]+)/) { $total_bytes_rcvd = $1; }
+if (/sent ([\d,]+) bytes  received ([\d,]+) bytes  ([\d,.]+) bytes\/sec/) { $bytes_sent =  $1; $bytes_rcvd = $2; $speed = $3; }
+if (/total size is ([\d,]+)  speedup is ([\d,.]+)/) { $total_size = $1; $speedup = $2; }
+
+END {
+    $total_size =~ tr/,//d;
+    $total_files =~ tr/,//d; $reg_files =~ tr/,//d; $dirs =~ tr/,//d;
+    $bytes_sent =~ tr/,//d; $bytes_rcvd =~ tr/,//d; $speed =~ tr/,//d;
+    $speedup =~ tr /,//d;
+    print "dataset,name=$name size=$total_size,total_files=$total_files,reg_files=$reg_files,dirs=$dirs $ts\n";
+    print "rsync-xfer,dataset=$name,src=$src,dest=$dest bytes_sent=$bytes_sent,bytes_rcvd=$bytes_rcvd,speed=$speed,speedup=$speedup,start_ts=$start_ts,end_ts=$end_ts $ts\n";
+}

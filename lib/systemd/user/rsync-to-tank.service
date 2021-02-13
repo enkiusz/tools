@@ -1,0 +1,12 @@
+[Unit]
+Description=Rsync to tank
+
+[Service]
+Type=oneshot
+# Tank environment variables, see help inside rsync-to-tank script
+EnvironmentFile=%E/systemd/user/tank.env
+# Influxdb environment variables, see help inside rsync-to-tank script
+EnvironmentFile=%E/systemd/user/influxdb.env
+# Use systemctl --user edit to add an override with Environment=DATASETS="x y z"
+# to backup directories x y and z
+ExecStart=/usr/bin/env -S rsync-to-tank $DATASETS

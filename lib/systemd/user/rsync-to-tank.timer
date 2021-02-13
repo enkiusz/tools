@@ -1,0 +1,8 @@
+[Unit]
+Description=Timer for rsync to tank
+
+[Timer]
+OnCalendar=daily
+
+[Install]
+WantedBy=default.target
