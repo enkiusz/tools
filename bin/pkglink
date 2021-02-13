@@ -18,10 +18,12 @@ usage() {
 
 [ $# == 0 ] && usage
 
-echo "Creating stow pkg '$PKG_NAME' in '$STOW_DIR'"
-
 PKG_DIR="$STOW_DIR/$PKG_NAME"
-mkdir "$PKG_DIR"
+if ! [ -d "$PKG_DIR" ]; then
+    echo "Creating stow pkg '$PKG_NAME' in '$STOW_DIR'"
+
+    mkdir -p "$PKG_DIR"
+fi
 
 while [ "$1" ]; do
 	echo "$1" | (IFS=":"; while read name target; do
@@ -35,6 +37,11 @@ while [ "$1" ]; do
 			target="$DEFAULT_TARGET"
 		fi
 
+    if ! [ -e "$name" ]; then
+        echo "$name: file doesn't exist"
+        break
+    fi
+
 		# Examples
 		# bin:.local/ == .local/bin -> bin
 		# bin:.local/bin == .local/bin -> bin
@@ -45,9 +52,10 @@ while [ "$1" ]; do
 		# .bin:.local/bin == .local/bin -> .bin
 
 		if expr $target : ".*/$" > /dev/null; then
-			target="$target/$name"
+			target="$target/$(basename $name)"
 		fi
-		mkdir -p "$(dirname $PKG_DIR/$target)"
+
+    mkdir -p "$(dirname $PKG_DIR/$target)"
 
 		# Stow doesn't want to link packages where there are absolute symlinks inside:
 		# % stow spacemacs
