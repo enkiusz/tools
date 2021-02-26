@@ -11,6 +11,8 @@
 #%- gzipped and pure tarballs (.tar, .tgz, .tar.gz) -> requires 'tar'
 #%- xz packed tarballs (.tar.xz) -> requires 'tar' and 'xz'
 #%- jar files -> requires 'unzip'
+#%- war files -> requires 'unzip'
+#%- ear files -> requires 'unzip'
 #%- rar archives -> requires 'unrar'
 #%- 7z archives -> requires '7z'
 #%- rpm packages -> requires 'rpm2tar' and 'tar'
@@ -57,6 +59,8 @@ while [ "$1" ]; do
     case "$container" in
 	*.zip) suffix=".zip"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
 	*.jar) suffix=".jar"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
+	*.war) suffix=".war"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
+	*.ear) suffix=".ear"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
 	*.apk) suffix=".apk"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
 	*.ipa) suffix=".ipa"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
     *.docx) suffix=".docx"; unpack_cmd='[ -z "$verbose" ] && unzip_quiet_flag="-q"; unzip ${unzip_quiet_flag} -d "$unwrap_dir" "$container"';;
@@ -98,7 +102,8 @@ while [ "$1" ]; do
 
 	case "$file" in
 	    *.zip|*.jar|*.tar|*.apk|*.ipa|*.docx|*.tar.gz|*.tar.bz2|*.tar.xz|*.tgz|*.tbz2|*.rar|*.7z|*.rpm|*.deb|*.udeb|*.iso|*.cpio)
-		      unwrap -C $(dirname "$file") ${hash_filename:+-H $hash_filename} ${remove_container:+-x} "$file";;
+          container_dir=$(dirname "$file")
+		      unwrap -C "$container_dir" ${hash_filename:+-H "$hash_filename"} ${remove_container:+-x} "$file";;
       *)
           if [ -n "$hash_filename" ]; then
               [ "$verbose" ] && echo "$file: Calculating2 SHA256 hash"
