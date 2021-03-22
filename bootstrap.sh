@@ -1,5 +1,24 @@
 #!/bin/sh
 
+no_prereqs() {
+	echo '# The toolset requires the following tools to be installed:'
+	echo '# - stow'
+	echo '# - git'
+	echo '# - curl'
+	echo '# - python3'
+	echo '# - realpath'
+	echo '# - giturlparse python module for python3'
+	echo '#'
+	exit 1
+}
+
+which stow >/dev/null 2>&1 || no_prereqs
+which git >/dev/null 2>&1 || no_prereqs
+which curl >/dev/null 2>&1 || no_prereqs
+which python3 >/dev/null 2>&1 || no_prereqs
+which realpath >/dev/null 2>&1 || no_prereqs
+python3 -c 'import giturlparse' || no_prereqs
+
 #
 # Configuration
 #
@@ -13,48 +32,6 @@ fi
 echo "# Configuration:"
 echo "# Repos will be cloned into '$REPOS_ROOT'"
 echo "# Packages will be stowed inside '$STOW_DIR'"
-
-if [ "$(uname)" == "Darwin" ]; then
-
-	no_prereqs_darwin() {
-		echo # The bootstrap script requires the following tools to be installed:
-		echo # - stow
-		echo # - git
-		echo # - curl
-		echo # - python3
-		echo # - realpath
-		echo # - giturlparse python module for python3
-		echo #
-		echo # Please use Homebrew and pip3 to install them
-		exit 1
-	}
-
-	which -s stow || no_prereqs_darwin
-	which -s git || no_prereqs_darwin
-	which -s curl || no_prereqs_darwin
-	which -s python3 || no_prereqs_darwin
-	which -s realpath || no_prereqs_darwin
-	python -c 'import giturlparse' || no_prereqs_darwin
-
-elif [ "$(uname)" == "Linux" ]; then
-
-	no_prereqs_linux() {
-		echo # The toolset requires the following tools to be installed:
-		echo # - stow
-		echo # - git
-		echo # - curl
-		echo # - python3
-		echo # - giturlparse python module for python3
-		echo #
-		exit 1
-	}
-
-	which stow >/dev/null || no_prereqs_linux
-	which git >/dev/null || no_prereqs_linux
-	which curl >/dev/null || no_prereqs_linux
-	which python3 >/dev/null || no_prereqs_linux
-	python3 -c 'import giturlparse' || no_prereqs_linux
-fi
 
 mkdir -p "$REPOS_ROOT" "$STOW_DIR"
 
