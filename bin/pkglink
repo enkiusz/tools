@@ -16,7 +16,7 @@ usage() {
 	exit 1
 }
 
-[ $# == 0 ] && usage
+[ $# = 0 ] && usage
 
 PKG_DIR="$STOW_DIR/$PKG_NAME"
 if ! [ -d "$PKG_DIR" ]; then
