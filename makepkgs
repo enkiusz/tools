@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # Link only bin/ by default
-pkglink bin
+pkglink bin lib share
