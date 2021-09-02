@@ -74,6 +74,9 @@ echo "# You need to modify your PATH variable to include the $HOME/.local/bin di
 echo "# For example, put the following in your $HOME/.profile"
 echo "export PATH=\"\$PATH:\$HOME/.local/bin\""
 echo ""
+echo "In more recent Linux distributions this directory is added to the PATH automatically, so you can try"
+echo "to logout and login again and see if the PATH variable contains the \"\$PATH:\$HOME/.local/bin\" directory"
+echo ""
 echo ""
 
 rm -r "$TMPDIR"
