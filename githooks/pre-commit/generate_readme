@@ -13,5 +13,6 @@ Here is a bunch of scripts that I use more or less often:
 
 EOF
 
+echo "Generating README.md"
 generate-README.rb bin/*
 ) > README.md
