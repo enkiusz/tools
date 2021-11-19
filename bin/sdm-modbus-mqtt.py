@@ -34,7 +34,6 @@ config = SimpleNamespace(
 
     # See:
     # $ python3 -m serial.tools.list_ports -v
-    #
     serialport_query = "",
 
     # Default serial port settings
