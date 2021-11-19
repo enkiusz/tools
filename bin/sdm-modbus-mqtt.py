@@ -8,6 +8,7 @@
 ## Category: Making the Internet of Things work for you
 ## Shortdesc: Query power import/export measurements from an Eastron SDM72D-M Modbus 3-phase bidirectional energy meter and publish them as SenML records to MQTT
 
+import sys
 import structlog
 import logging
 import argparse
