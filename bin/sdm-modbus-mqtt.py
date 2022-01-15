@@ -109,8 +109,8 @@ def modbus_source(config):
           yield({
             # Take absolute values on both measurements, the import/export names already indicate the direction where energy flows.
             # Negatie energy flow values are confusing.
-            'total_import_active_power': dict(u='W', v=abs(meter.read('total_import_active_power'))),
-            'total_export_active_power': dict(u='W', v=abs(meter.read('total_export_active_power'))),
+            'total_import_active_power': dict(u='W', v=abs(meter.read('import_total_power_active'))),
+            'total_export_active_power': dict(u='W', v=abs(meter.read('export_total_power_active'))),
           })
           time.sleep(config.query_period)
 
