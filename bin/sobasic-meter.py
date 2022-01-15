@@ -53,17 +53,18 @@ config = SimpleNamespace(
     fake_pulse_interval=5
 )
 
+
 #
-# Try to find the first Arduino serial port
+# Try to find the first port matching a given query
 #
-def find_arduino_serial():
+def find_serial_port(query):
     try:
-        (port, desc, hwid) = next(serial.tools.list_ports.grep("^Arduino"))
+        (port, desc, hwid) = next(serial.tools.list_ports.grep(query))
     except StopIteration:
-        log.error("Could not detect an Arduino connected, please supply the serial port device manually")
+        log.error("Could not find port using query '{}', please supply the serial port device manually".format(query))
         return None
 
-    log.debug("Using first available port with an Arduion: {} (description '{}' hwid '{}')".format(port, desc, hwid))
+    log.debug("Found port: {} (query '{}', description '{}' hwid '{}')".format(port, query, desc, hwid))
     return port
 
 def fake_pulse_source(config):
@@ -78,7 +79,7 @@ def fake_pulse_source(config):
 def serial_pulse_source(config):
 
     if config.port is None:
-        config.port=find_arduino_serial()
+        config.port=find_serial_port(config.serialport_query)
 
     log.info("Reading pulses from serial port '{}'".format(config.port))
 
@@ -128,6 +129,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process SO pulses and report resource usage to an MQTT broker as RFC8428 SenML Records")
     parser.add_argument("--loglevel", default=config.loglevel, help="Log level")
     parser.add_argument("-p", "--port", metavar="DEV", help="The serial port that connects to the SObasic module")
+    parser.add_argument("--find-serialport", metavar="QUERY", dest="serialport_query", default='^Arduino', help="Find a serial port using serial.tools.list_ports.grep(QUERY)")
     parser.add_argument("-b", "--bitrate", metavar="BPS", default=config.bitrate, type=int, help="The bitrate of the serial port")
     parser.add_argument("-q", "--quantum", metavar="QUANTUM", type=float, default=config.quantum, help="The amount of measured resource (energy/water/gas) consumed for each pulse.")
     parser.add_argument("--resource-unit", metavar="UNIT", default=config.resource_unit, help="The unit of the measured resource (J, Wh, kWh, m^3, etc.)")
