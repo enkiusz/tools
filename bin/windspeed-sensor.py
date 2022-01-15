@@ -48,16 +48,16 @@ config = SimpleNamespace(
 )
 
 #
-# Try to find the first Arduino serial port
+# Try to find the first port matching a given query
 #
-def find_arduino_serial():
+def find_serial_port(query):
     try:
-        (port, desc, hwid) = next(serial.tools.list_ports.grep("^Arduino"))
+        (port, desc, hwid) = next(serial.tools.list_ports.grep(query))
     except StopIteration:
-        log.error("Could not detect an Arduino connected, please supply the serial port device manually")
+        log.error("Could not find port using query '{}', please supply the serial port device manually".format(query))
         return None
 
-    log.debug("Using first available serial port with an Arduino connected: {} (description '{}' hwid '{}')".format(port, desc, hwid))
+    log.debug("Found port: {} (query '{}', description '{}' hwid '{}')".format(port, query, desc, hwid))
     return port
 
 def fake_pulse_source(config):
@@ -71,7 +71,7 @@ def fake_pulse_source(config):
 def serial_pulse_source(config):
 
     if config.port is None:
-        config.port=find_arduino_serial()
+        config.port=find_serial_port(config.serialport_query)
 
     log.info("Reading pulse frequency data from serial port '{}'".format(config.port))
 
@@ -117,6 +117,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Measure wind speed based on sensor pulse frequency, send to MQTT broker as RFC8428 SenML Records")
     parser.add_argument("--loglevel", default=config.loglevel, help="Log level")
     parser.add_argument("-p", "--port", metavar="DEV", help="The serial port that connects to the pulsefreq-basic module")
+    parser.add_argument("--find-serialport", metavar="QUERY", dest="serialport_query", default='^Arduino', help="Find a serial port using serial.tools.list_ports.grep(QUERY)")
     parser.add_argument("-b", "--bitrate", metavar="BPS", default=config.bitrate, type=int, help="The bitrate of the serial port")
     parser.add_argument("-f", "--conversion_factor", required=True, metavar="FACTOR", type=float, help="The conversion factor from frequency to wind speed")
     parser.add_argument("--min-speed", type=float, metavar="SPEED", default=config.min_reported_speed, help="Minimum wind speed reported to MQTT")
