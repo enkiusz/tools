@@ -5,7 +5,7 @@
 
 # Before running this script you need to install the vulnscan-parser python module.
 # You can do that using pip:
-# python3 -m pip install git+https://github.com/happyc0ding/vulnscan-parser.git
+# python3 -m pip install --user git+https://github.com/happyc0ding/vulnscan-parser.git
 
 #
 # Information included:
