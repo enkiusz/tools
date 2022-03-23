@@ -18,6 +18,9 @@ Here is a bunch of scripts that I use more or less often:
 * bin/youtube-get-playlists.py - Get a list of playlists for a particular Youtube account
 * bin/youtube-playlist-sync - Make a local mirror of all playlists for a particular Youtube account. Personal YT backup solution.
 
+## Information security:
+* bin/nessus2nmap.py - Convert basic information from a Nessus XML scan report to a nmap XML report
+
 ## Internet banking:
 * bin/banksmart.rb - Fetch the account balances from your http://www.banksmart.pl/ internet banking account
 * bin/ideabank-pingpong.py - Create a PING-PONG one day deposit on your http://www.ideabank.pl/ internet banking account
