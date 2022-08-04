@@ -69,12 +69,22 @@ def find_serial_port(query):
 
 def fake_pulse_source(config):
     i = 0
+    prev_ts = None
 
     while True:
-        yield dict(i=i, info='SO pulse')
-        time.sleep(config.fake_pulse_interval * random.random())
+        ts = dt.datetime.now(dt.timezone.utc)
 
+        if prev_ts:
+            rate = ureg.parse_expression("({} {}) / ({} s)".format(
+                config.quantum, config.resource_unit, (ts - prev_ts).total_seconds())
+            )
+
+            yield dict(i=i, u=config.rate_unit, v=rate.m_as(config.rate_unit), info='fake pulse')
+
+        prev_ts = ts
         i += 1
+
+        time.sleep(config.fake_pulse_interval * random.random())
 
 def serial_pulse_source(config):
 
@@ -104,25 +114,12 @@ def measurement_loop(config, source):
         pulse = next(source)
 
         log.debug("from source '{}'".format(repr(pulse)))
-        if pulse['info'] == "SO pulse":
-            ts = dt.datetime.now(dt.timezone.utc)
 
-            if prev_ts:
-                rate = ureg.parse_expression("({} {}) / ({} s)".format(
-                    config.quantum, config.resource_unit, (ts - prev_ts).total_seconds())
-                )
-                senml = dict(u=config.rate_unit, v=rate.m_as(config.rate_unit))
-
-                if mqtt_client:
-                    log.debug("Sending to MQTT topic '{}': {}'".format(config.mqtt_topic, json.dumps(senml)))
-                    mqtt_client.publish(config.mqtt_topic, qos=1, payload=json.dumps(senml))
-
-            prev_ts = ts
+        if mqtt_client:
+            log.debug("Sending to MQTT topic '{}': {}'".format(config.mqtt_topic, json.dumps(pulse)))
+            mqtt_client.publish(config.mqtt_topic, qos=1, payload=json.dumps(pulse))
 
     return 1
-
-def mqtt_loop(config):
-    mqtt_client.loop_forever(retry_first_connection=True)
 
 if __name__ == "__main__":
 
@@ -136,6 +133,7 @@ if __name__ == "__main__":
     parser.add_argument("--rate-unit", metavar="UNIT", default=config.rate_unit, help="The unit of the reported resource consumption rate (W, liters/s, etc.)")
     parser.add_argument("--mqtt-broker", metavar="NAME", help="Send data to specified MQTT broker URL")
     parser.add_argument("--mqtt-topic", metavar="TOPIC", default=config.mqtt_topic, help="Set MQTT topic")
+    parser.add_argument("--mqtt-reconnect-delay", metavar="MIN MAX", nargs=2, type=int, help="Set MQTT client reconnect behaviour")
     parser.add_argument("--fake-pulses", action='store_true', default=False, help="Generate fake pulses instead of reading them from the serial port")
 
     args = parser.parse_args()
@@ -159,15 +157,19 @@ if __name__ == "__main__":
         else:
             mqtt_port = 1883
 
-        try:
-            mqtt_thread = threading.Thread(target=mqtt_loop, args=(config,))
-            mqtt_thread.start()
+        if config.mqtt_reconnect_delay is not None:
+            (_min_delay, _max_delay) = config.mqtt_reconnect_delay
+            mqtt_client.reconnect_delay_set(min_delay=_min_delay, max_delay=_max_delay)
 
+        try:
             log.info("Connecting to MQTT broker URL '{}'".format(config.mqtt_broker))
             mqtt_client.connect(broker_url.netloc, port=mqtt_port)
+            mqtt_client.loop_start()
         except:
-            # Connection to broker failed, disable MQTT
-            log.error("Cannot connect to MQTT broker, MQTT will be disabled", exc_info=True)
+            # Connection to broker failed
+            log.error("Cannot connect to MQTT broker", exc_info=True)
+            sys.exit(1)
+
     else:
         mqtt_client = None
 
