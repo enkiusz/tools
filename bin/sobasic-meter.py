@@ -69,19 +69,10 @@ def find_serial_port(query):
 
 def fake_pulse_source(config):
     i = 0
-    prev_ts = None
 
     while True:
-        ts = dt.datetime.now(dt.timezone.utc)
-
-        if prev_ts:
-            rate = ureg.parse_expression("({} {}) / ({} s)".format(
-                config.quantum, config.resource_unit, (ts - prev_ts).total_seconds())
-            )
-
-            yield dict(i=i, u=config.rate_unit, v=rate.m_as(config.rate_unit), info='fake pulse')
-
-        prev_ts = ts
+        
+        yield dict(i=i, info='fake pulse')
         i += 1
 
         time.sleep(config.fake_pulse_interval * random.random())
@@ -112,8 +103,16 @@ def measurement_loop(config, source):
     prev_ts = None
     while True:
         pulse = next(source)
-
         log.debug("from source '{}'".format(repr(pulse)))
+
+        ts = dt.datetime.now(dt.timezone.utc)
+        if prev_ts:
+            rate = ureg.parse_expression("({} {}) / ({} s)".format(
+                config.quantum, config.resource_unit, (ts - prev_ts).total_seconds())
+            )
+            pulse.update(dict(u=config.rate_unit, v=rate.m_as(config.rate_unit)))
+
+        prev_ts = ts
 
         if mqtt_client:
             log.debug("Sending to MQTT topic '{}': {}'".format(config.mqtt_topic, json.dumps(pulse)))
