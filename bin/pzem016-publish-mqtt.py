@@ -96,8 +96,8 @@ def modbus_source(config):
             cleanup_pzem_reading(reading_left)
 
             measurement['left'] = reading_left
-        except minimalmodbus.NoResponseError as e:
-            log.error('no response', pzem=pzem_left, _exc_info=e)
+        except minimalmodbus.ModbusException as e:
+            log.error('modbus error', pzem=pzem_left, _exc_info=e)
             time.sleep(config.query_period / 2)
 
         try:
@@ -106,8 +106,8 @@ def modbus_source(config):
             cleanup_pzem_reading(reading_right)
 
             measurement['right'] = reading_right
-        except minimalmodbus.NoResponseError as e:
-            log.error('no response', pzem=pzem_right, _exc_info=e)
+        except minimalmodbus.ModbusException as e:
+            log.error('modbus error', pzem=pzem_right, _exc_info=e)
             time.sleep(config.query_period / 2)
 
         if len(measurement) > 0:
