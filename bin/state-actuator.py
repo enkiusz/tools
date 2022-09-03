@@ -19,31 +19,12 @@ import time
 from pyftdi.ftdi import Ftdi
 from enum import Enum, IntFlag
 
-# Reference: https://gist.github.com/ptmcg/23ba6e42d51711da44ba1216c53af4ea
-class ArgTypeMixin(Enum):
-
-    @classmethod
-    def argtype(cls, s: str) -> Enum:
-        try:
-            return cls[s]
-        except KeyError:
-            raise argparse.ArgumentTypeError(
-                f"{s!r} is not a valid {cls.__name__}")
-
-    def __str__(self):
-        return self.name
 
 CBUS3 = 0b1000
 CBUS2 = 0b0100
 
 CHRG_REQ = CBUS3
 DISCH_REQ = CBUS2
-
-class BatteryStates(ArgTypeMixin, IntFlag):
-    idle = 0
-    chrg = CHRG_REQ
-    disch = DISCH_REQ
-    chrg_disch = CHRG_REQ|DISCH_REQ
 
 log = logging.getLogger(__name__)
 
@@ -60,24 +41,28 @@ config = SimpleNamespace(
     mqtt_topic="battery/state",
 
     # Initial charging state
-    initial_state=BatteryStates.idle,
+    initial_state=dict(chrg=0, disch=0),
 )
 
 
 
-def get_cbus_out(ftdi) -> BatteryStates:
-    return BatteryStates(ftdi._cbus_out)
+def get_state(ftdi):
+    v = ftdi._cbus_out
+    return dict(chrg=1 if v & CHRG_REQ > 0 else 0, disch=1 if v & DISCH_REQ > 0 else 0)
 
 
-def set_cbus_out(ftdi, state: BatteryStates):
-    ftdi.set_cbus_gpio(state.value)
+def set_state(ftdi, state):
+    v = 0
+    v |= CHRG_REQ if state['chrg'] == 1 else 0
+    v |= DISCH_REQ if state['disch'] == 1 else 0
+    ftdi.set_cbus_gpio(v)
 
 
 def feedback_loop(config, **kwargs):
     log.info("Reading CBUS state from '{}'".format(args.url))
 
     while True:
-        state = dict(state=get_cbus_out(kwargs['ftdi']).name, ts=time.time())
+        state = get_state(kwargs['ftdi'])
 
         log.debug("state '{}'".format(state))
 
@@ -94,8 +79,7 @@ def on_message(client, userdata, message):
     log.info("message received for topic='{}' {}".format(message.topic, message.payload))
 
     try:
-        j = json.loads(message.payload)
-        set_cbus_out(ftdi, BatteryStates[j['state']])
+        set_state(ftdi, json.loads(message.payload))
     except Exception as e:
         log.error(e)
         log.error("error while setting new state '{}'".format(message.payload))
@@ -108,7 +92,6 @@ if __name__ == "__main__":
     parser.add_argument("--mqtt-broker", metavar="NAME", help="Send data to specified MQTT broker URL")
     parser.add_argument("--mqtt-topic", metavar="TOPIC", default=config.mqtt_topic, help="Set MQTT topic")
     parser.add_argument("--mqtt-reconnect-delay", metavar="MIN MAX", nargs=2, type=int, help="Set MQTT client reconnect behaviour")
-    parser.add_argument("--initial-state", metavar="STATE", type=BatteryStates.argtype, default=config.initial_state, choices=BatteryStates, help="Initial state")
 
     args = parser.parse_args()
     config.__dict__.update(vars(args))
@@ -122,7 +105,7 @@ if __name__ == "__main__":
     ftdi.set_bitmode(0, Ftdi.BitMode.CBUS)
 
     # Set output mode on both chrg and disch pins
-    ftdi.set_cbus_direction(BatteryStates.chrg_disch, BatteryStates.chrg_disch)
+    ftdi.set_cbus_direction(CHRG_REQ|DISCH_REQ, CHRG_REQ|DISCH_REQ)
 
     # Set initial state
     set_cbus_out(ftdi, config.initial_state)
