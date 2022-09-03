@@ -108,7 +108,7 @@ if __name__ == "__main__":
     ftdi.set_cbus_direction(CHRG_REQ|DISCH_REQ, CHRG_REQ|DISCH_REQ)
 
     # Set initial state
-    set_cbus_out(ftdi, config.initial_state)
+    set_state(ftdi, config.initial_state)
 
     broker_url = urlparse(config.mqtt_broker)
     log.debug("MQTT URL {}".format(broker_url))
@@ -151,5 +151,5 @@ if __name__ == "__main__":
         print(e)
     finally:
         # Restore initial state
-        set_cbus_out(ftdi, config.initial_state)
+        set_state(ftdi, config.initial_state)
         ftdi.close()
