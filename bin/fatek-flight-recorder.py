@@ -138,7 +138,7 @@ def main_loop(config):
         output_names = [ f'Y{i}' for i in range(0, input_count) ]
 
         # Read 0x08 outputs starting from Y0000
-        response = transaction(ser, command='43', config=config, data='08Y0000')
+        response = transaction(ser, command='44', config=config, data='08Y0000')
         if response:
             outputs = dict(unpack_states(output_names, response['data']))
             log.debug('output states', outputs=outputs)
