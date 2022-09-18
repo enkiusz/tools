@@ -1,0 +1,31 @@
+#!/sbin/openrc-run
+
+description="Dockerized services for $RC_SVCNAME"
+description_checkconfig="Check docker-compose configuration"
+
+dockersvc_root=${dockersvc_root:-/var/cache/misc/dockerfiles}
+
+extra_commands="checkconfig"
+
+depend() {
+	need localmount
+}
+
+
+project_directory="$dockersvc_root/${RC_SVCNAME##dockersvc.}"
+
+checkconfig() {
+	docker-compose --project-directory "$project_directory" config -q || return 1
+}
+
+start() {
+	ebegin Starting $RC_SVCNAME
+	docker-compose --ansi never --project-directory "$project_directory" up -d
+	eend
+}
+
+stop() {
+	ebegin Stopping $RC_SVCNAME
+	docker-compose --project-directory "$project_directory" down
+}
+
