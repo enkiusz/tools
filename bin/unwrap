@@ -29,18 +29,20 @@
 #%-v            - increase verbosity
 #%-H <hashfile> - store SHA256 hashes of all extracted files into <hashfile>
 #%-x            - remove container after extraction
+#%-o		- unwrap once, leave containers inside containers
 #%-h            - this help text
 #%
 #%Author: Maciej Grela <enki@fsck.pl>
 
 destdir=.
 
-while getopts C:vxhH: opt; do
+while getopts C:vxohH: opt; do
     case $opt in
         C) destdir="$OPTARG";;
 	v) verbose=1;;
 	x) remove_container=1;;
   H) hash_filename="$OPTARG";;
+	o) unwrap_once=1;;
 	h) grep "^#%" $0 | sed 's/^#%//';;
         ?) exit 1;;
     esac
@@ -95,7 +97,7 @@ while [ "$1" ]; do
     fi
 
     # Search for other containers inside the extracted container
-    find "$unwrap_dir" -type f | while read file; do
+    [ "$unwrap_once" ] || find "$unwrap_dir" -type f | while read file; do
 
 	# Optimize this on Cygwin by performing the suffix check now without running the command recursively
 	# fork() on Cygwin is very slow
