@@ -62,7 +62,10 @@ def feedback_loop(config, **kwargs):
     log.info("Reading CBUS state from '{}'".format(args.url))
 
     while True:
-        state = get_state(kwargs['ftdi'])
+        if not config.test:
+            state = get_state(kwargs['ftdi'])
+        else:
+            state = dict(chrg=0, disch=0)
 
         log.debug("state '{}'".format(state))
 
@@ -78,17 +81,20 @@ def on_message(client, userdata, message):
     ftdi = userdata
     log.info("message received for topic='{}' {}".format(message.topic, message.payload))
 
-    try:
-        set_state(ftdi, json.loads(message.payload))
-    except Exception as e:
-        log.error(e)
-        log.error("error while setting new state '{}'".format(message.payload))
-
+    if ftdi:
+        try:
+            set_state(ftdi, json.loads(message.payload))
+        except Exception as e:
+            log.error(e)
+            log.error("error while setting new state '{}'".format(message.payload))
+    else:
+        log.warn('FTDI interface not open, skipping update')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Manage charging/discharging cycles with a the CBUS outputs of a FTDI dongle.")
     parser.add_argument("--loglevel", default=config.loglevel, help="Log level")
     parser.add_argument("-u", "--url", metavar="URL", default=config.url, help="The FTDI device URL")
+    parser.add_argument('--test', default=False, action='store_true', help="Do not open the FTDI device, send fake data to MQTT")
     parser.add_argument("--mqtt-broker", metavar="NAME", help="Send data to specified MQTT broker URL")
     parser.add_argument("--mqtt-topic", metavar="TOPIC", default=config.mqtt_topic, help="Set MQTT topic")
     parser.add_argument("--mqtt-reconnect-delay", metavar="MIN MAX", nargs=2, type=int, help="Set MQTT client reconnect behaviour")
@@ -98,17 +104,22 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=getattr(logging, config.loglevel))
 
-    ftdi = Ftdi()
-    ftdi.open_from_url(url=config.url)
+    if not args.test:
+        ftdi = Ftdi()
+        ftdi.open_from_url(url=config.url)
 
-    # Set bitbang mode
-    ftdi.set_bitmode(0, Ftdi.BitMode.CBUS)
+        # Set bitbang mode
+        ftdi.set_bitmode(0, Ftdi.BitMode.CBUS)
 
-    # Set output mode on both chrg and disch pins
-    ftdi.set_cbus_direction(CHRG_REQ|DISCH_REQ, CHRG_REQ|DISCH_REQ)
+        # Set output mode on both chrg and disch pins
+        ftdi.set_cbus_direction(CHRG_REQ|DISCH_REQ, CHRG_REQ|DISCH_REQ)
 
-    # Set initial state
-    set_state(ftdi, config.initial_state)
+        # Set initial state
+        set_state(ftdi, config.initial_state)
+    else:
+        log.info('Testing mode enabed')
+
+        ftdi = None
 
     broker_url = urlparse(config.mqtt_broker)
     log.debug("MQTT URL {}".format(broker_url))
