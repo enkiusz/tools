@@ -10,6 +10,7 @@
 
 # Reference: https://github.com/elshaka/fatek-serial
 # Reference: https://github.com/mh-mansouri/FatekPLC_for_LabView/blob/main/FATEK%20Communication%20Protocol.pdf
+# Reference: https://github.com/Za-Ra/Fatek_FBs
 
 import structlog
 import logging
