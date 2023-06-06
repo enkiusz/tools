@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 #
-# Copyright 2022 Maciej Grela <enki@fsck.pl>
+# Copyright 2022,2023 Maciej Grela <enki@fsck.pl>
 # SPDX-License-Identifier: WTFPL
 #
 
 ## Category: Making the Internet of Things work for you
-## Shortdesc: Query a Fatek FBs PLC on Port 0 and publish input (X) as well as output (Y) state via MQTT
+## Shortdesc: Monitor and control Fatek FBs PLC on Port 0 via MQTT
 
 # Reference: https://github.com/elshaka/fatek-serial
 # Reference: https://github.com/mh-mansouri/FatekPLC_for_LabView/blob/main/FATEK%20Communication%20Protocol.pdf
@@ -25,6 +25,7 @@ import json
 from urllib.parse import urlparse
 import time
 import socket
+import threading
 
 # Reference: https://stackoverflow.com/a/49724281
 LOG_LEVEL_NAMES = [logging.getLevelName(v) for v in
@@ -112,23 +113,16 @@ def unpack_states(names, data):
 
 
 def main_loop(config):
-    
-    log.info('using serial port', port=config.port)
-
-    ser = serial.serial_for_url(config.port)
-    ser.baudrate = 9600
-    ser.bytesize = serial.SEVENBITS
-    ser.parity = serial.PARITY_EVEN
-    ser.stopbits = 1
-    ser.timeout = config.timeout
 
     while True:
 
         input_count = 12
         input_names = [ f'X{i}' for i in range(0, input_count) ]
 
-        # Read 0x0C inputs starting from X0000
-        response = transaction(ser, command='44', config=config, data='0CX0000')
+        with config._ser.lock:
+            # Read 0x0C inputs starting from X0000
+            response = transaction(config._ser, command='44', config=config, data='0CX0000')
+
         if response:
             inputs = dict(unpack_states(input_names, response['data']))
             log.debug('input states', inputs=inputs)
@@ -138,8 +132,10 @@ def main_loop(config):
         output_count = 8
         output_names = [ f'Y{i}' for i in range(0, input_count) ]
 
-        # Read 0x08 outputs starting from Y0000
-        response = transaction(ser, command='44', config=config, data='08Y0000')
+        with config._ser.lock:
+            # Read 0x08 outputs starting from Y0000
+            response = transaction(config._ser, command='44', config=config, data='08Y0000')
+
         if response:
             outputs = dict(unpack_states(output_names, response['data']))
             log.debug('output states', outputs=outputs)
@@ -162,11 +158,39 @@ def main_loop(config):
 
     return 1
 
+def on_message(client, userdata, message):
+    config = userdata
+    log.info('mqtt message', topic=message.topic, payload=message.payload)
+
+    input_name = message.topic.removeprefix(f"{config.mqtt_topic}/").removesuffix("/set")
+    _type = input_name[0]
+    _number = int(input_name[1:])
+
+    if message.payload == b'1':
+        value_code = '3'  # Set
+    elif message.payload == b'0':
+        value_code = '4'  # Reset
+    else:
+        log.error('invalid payload', payload=message.payload)
+        return
+
+    if config._ser:
+        try:
+            with config._ser.lock:
+                log.info("set state", topic=message.topic, value=message.payload, value_code=value_code)
+                transaction(config._ser, command='42', config=config, data=f'{value_code}{_type}{_number:04d}')
+        except Exception as e:
+            log.error(e)
+            log.error("error while setting new state '{}'".format(message.payload))
+    else:
+        log.warn('Serial port not open, skipping update')
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Query a Fatek FBs PLC on Port 0 and publish input (X) as well as output (Y) state via MQTT")
     parser.add_argument("--loglevel", default=config.loglevel, help="Log level")
     parser.add_argument("-p", "--port", metavar="URL", help="The serial port URL")
+    parser.add_argument("--settable-input", metavar="INPUT", dest='settable_inputs', action='append', help="Specify inputs that will be accessible via MQTT")
     parser.add_argument("--mqtt-broker", metavar="NAME", help="Send data to specified MQTT broker URL")
     parser.add_argument("--mqtt-topic", metavar="TOPIC", default=config.mqtt_topic, help="Set MQTT topic")
     parser.add_argument("--mqtt-reconnect-delay", metavar="MIN MAX", nargs=2, type=int, help="Set MQTT client reconnect behaviour")
@@ -177,6 +201,17 @@ if __name__ == "__main__":
     # Restrict log message to be above selected level
     structlog.configure( wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, args.loglevel)) )
 
+    log.info('using serial port', port=config.port)
+
+    ser = serial.serial_for_url(config.port)
+    ser.baudrate = 9600
+    ser.bytesize = serial.SEVENBITS
+    ser.parity = serial.PARITY_EVEN
+    ser.stopbits = 1
+    ser.timeout = config.timeout
+    ser.lock = threading.Lock()
+    config.__dict__.update(dict(_ser=ser))
+
     if config.mqtt_broker:
         broker_url = urlparse(config.mqtt_broker)
         log.debug("MQTT URL {}".format(broker_url))
@@ -184,10 +219,12 @@ if __name__ == "__main__":
         import paho.mqtt.client as mqtt
         import ssl
 
-        mqtt_client = mqtt.Client()
+        mqtt_client = mqtt.Client(userdata=config)
 
         # TODO: How to attach structlog to paho?
         # mqtt_client.enable_logger(logger=log)
+
+        mqtt_client.on_message = on_message
 
         if broker_url.scheme == 'mqtts':
             log.debug("Initializing MQTT TLS")
@@ -203,6 +240,21 @@ if __name__ == "__main__":
         try:
             log.info("Connecting to MQTT broker URL '{}'".format(config.mqtt_broker))
             mqtt_client.connect(broker_url.netloc, port=mqtt_port)
+
+            if config.settable_inputs:
+                for input_name in config.settable_inputs:
+                    _type = input_name[0]
+                    _number = int(input_name[1:])
+
+                    with config._ser.lock:
+                        # We need to disable the inputs first to disconnect from the external input pins
+                        if transaction(ser, command='42', config=config, data=f'1{_type}{_number:04d}'):
+                            topic = f"{config.mqtt_topic}/{input_name}/set"
+                            log.debug('mqtt subscribe', topic=topic)
+                            mqtt_client.subscribe(topic, qos=1)
+                        else:
+                            log.error('cannot disable input', input_name=input_name)
+
             mqtt_client.loop_start()
         except:
             # Connection to broker failed
