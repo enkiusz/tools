@@ -45,7 +45,7 @@ echo "Temporary directory will be '$TMPDIR'"
 	# Reference: https://github.com/woutervb/snap-curl/issues/2
 	# https://forum.snapcraft.io/t/classic-confinement-request-for-curl/24611
 	curl https://raw.githubusercontent.com/enkiusz/tools/master/bin/clonerepo > clonerepo
-	curl https://raw.githubusercontent.com/enkkusz/tools/master/bin/urlparse > urlparse
+	curl https://raw.githubusercontent.com/enkiusz/tools/master/bin/urlparse > urlparse
 	chmod +x clonerepo urlparse
 	clonerepo https://github.com/enkiusz/tools.git
 )
