@@ -141,9 +141,8 @@ optparse = OptionParser.new do|opts|
   smart_data_file.close()
   if options[:smartupload] == 1
     # Example CLI pastebins:
-    # http://sprunge.us/
     # http://ix.io/
-    paste_url = `cat #{smart_data_filename} | curl -F 'sprunge=<-' http://sprunge.us`.chomp()
+    paste_url = `cat "#{smart_data_filename}" | curl -F 'f:1=<-' ix.io`.chomp()
   end
 
   if options[:badblocks] == 1
