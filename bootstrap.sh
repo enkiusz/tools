@@ -44,16 +44,16 @@ echo "Temporary directory will be '$TMPDIR'"
 	# Use redirection instead of -O beacuse curl installed from Ubuntu snap cannot write to arbitrary locations.
 	# Reference: https://github.com/woutervb/snap-curl/issues/2
 	# https://forum.snapcraft.io/t/classic-confinement-request-for-curl/24611
-	curl https://raw.githubusercontent.com/mgrela/tools/master/bin/clonerepo > clonerepo
-	curl https://raw.githubusercontent.com/mgrela/tools/master/bin/urlparse > urlparse
+	curl https://raw.githubusercontent.com/enkiusz/tools/master/bin/clonerepo > clonerepo
+	curl https://raw.githubusercontent.com/enkkusz/tools/master/bin/urlparse > urlparse
 	chmod +x clonerepo urlparse
-	clonerepo https://github.com/mgrela/tools.git
+	clonerepo https://github.com/enkiusz/tools.git
 )
 
 
 # Create stow package
 (
-	cd "$REPOS_ROOT/github.com/mgrela/tools"
+	cd "$REPOS_ROOT/github.com/enkiusz/tools"
 
 	# This is needed only because we are bootstrapping an we don't have the tools
 	# stowed yet in a directory available in PATH
