@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # daily - Daily Gentoo maintenance script
 # Copyright (C) 2014 Maciej Grela <enki@fsck.pl>

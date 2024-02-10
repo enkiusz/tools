@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 no_prereqs() {
 	echo '# The toolset requires the following tools to be installed:'

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## Category: Various
 ## Shortdesc: Upload scripts to imgur (from Bart Nagel <bart@tremby.net>)

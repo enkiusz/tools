@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ## Category: Googlefoo
 ## Shortdesc: Make a local mirror of all the libraries hosted on https://developers.google.com/speed/libraries/devguide for improved privacy

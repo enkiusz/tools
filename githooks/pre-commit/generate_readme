@@ -1,10 +1,10 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 if [ "$1" == "--about" ]; then
    echo "Generate a README.md file listing information about all scripts"
    exit 0
 fi
-  
+
 (
 cat <<EOF
 # tools

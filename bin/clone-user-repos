@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 ## Category: Various
 ## Shortdesc: Clone all repositories of a particular user from github.com

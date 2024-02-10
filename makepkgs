@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 # Link only bin/ by default
 pkglink bin lib share

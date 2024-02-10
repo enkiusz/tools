@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 ## Category: Daily/maintenance
 ## Shortdesc: Rsync directories (datasets) to a remote encrypted storage tank, post stats to influxdb

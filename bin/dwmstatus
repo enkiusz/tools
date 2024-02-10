@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## Category: Daily/maintenance
 ## Shortdesc: The status command I used when I had dwm

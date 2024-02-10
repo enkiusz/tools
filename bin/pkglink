@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 # Configuration
 if [ -z "$STOW_DIR" ]; then

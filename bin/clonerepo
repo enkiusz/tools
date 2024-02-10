@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 ## Category: Various
 ## Shortdesc: Clone a git repository into a neatly organized local repo root.

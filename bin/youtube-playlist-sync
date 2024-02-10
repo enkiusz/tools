@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## Category: Googlefoo
 ## Shortdesc: Make a local mirror of all playlists for a particular Youtube account. Personal YT backup solution.
