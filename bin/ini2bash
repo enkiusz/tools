@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+## Category: Various
+## Shortdesc: Convert an .ini file syntax into shell variable definitions suitable for sourcing into a shell script
+
+import argparse
+import configparser
+import sys
+
+parser = argparse.ArgumentParser(prog='ini2bash',
+                                  description='Convert an .ini file syntax into shell variable definitions suitable for sourcing into a shell script')
+parser.add_argument('-s', '--shell-flavor', default='bash', help='Shell syntax flavor')
+parser.add_argument('-P', '--prefix', default='', help='Variable name prefix')
+parser.add_argument('inifile', default='-', help=".ini file to read, use '-' to use standard input")
+
+args = parser.parse_args()
+
+def bash_sanitize_varname(var: str) -> str:
+    var = var.replace('.', '_')
+    var = var.replace('-', '_')
+    return var
+
+config = configparser.ConfigParser()
+if args.inifile == '-':
+    config.read_file(sys.stdin)
+else:
+    config.read(args.inifile)
+
+for section_name in config.sections():
+    print(f"declare -A {args.prefix}{bash_sanitize_varname(section_name)}")
+    for (k,v) in config[section_name].items():
+        print(f"{args.prefix}{bash_sanitize_varname(section_name)}[{k}]=\"{v}\"")
