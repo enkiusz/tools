@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: WTFPL
 
 ## Category: Various
 ## Shortdesc: Recursively unpack containers. That is, if there are other container files inside they will also be unpacked.
@@ -126,7 +127,8 @@ detect_container() {
 
     suffix=$(detect_suffix "$container")
     if [ -n "$guess" ]; then
-        mimetype=$(file -z --mime-type --brief "$container")
+        mimetype=$(file --mime-type --brief "$container")
+        verbose "$container: mime type '$mimetype'"
         case "$mimetype" in
             application/zip) typecode=zip;;
             application/x-tar) typecode=tar;;
@@ -192,15 +194,14 @@ while [ "$1" ]; do
 
             container_dir="$(basename "$container" "$suffix")"
             unwrap_dir="$destdir/$container_dir"
-            verbose "$container: Unwrapping files into '$unwrap_dir'"
-            echo "unpack cmd $unpack_cmd" 1>&2
+            verbose "$container: Unwrapping files into '$unwrap_dir' using command '$unpack_cmd'"
             mkdir -p "$unwrap_dir" && unwrap_dir=$unwrap_dir container=$container eval $unpack_cmd || error "$container: failed unpack_cmd '$unpack_cmd'"
 
             # Check for asdf.zip containing asdf/ which gets unwrapped into asdf/asdf/
             if find "$unwrap_dir" -maxdepth 1 -mindepth 1 -type d -name "$container_dir" | grep -q "$container_dir/$container_dir"; then
                 # Remove unneeded directory
                 ( shopt -s dotglob; mv "$unwrap_dir/$container_dir"/* "$unwrap_dir/" )
-                rmdir "$unwrap_dir/$container_dir" || ( echo "Someting is very wrong, '$unwrap_dir/$container_dir' should be empty"; exit 1 )
+                rmdir "$unwrap_dir/$container_dir" || fatal "Someting is very wrong, '$unwrap_dir/$container_dir' should be empty"
             fi
 
             # Search for other containers inside the extracted container
@@ -208,7 +209,7 @@ while [ "$1" ]; do
                     detect_container "$file" | ( read typecode suffix flags unpack_cmd
                         if [ "$typecode" != '<unknown>' -a "$suffix" != '<unknown>' ]; then
                             container_dir=$(dirname "$file")
-		                        unwrap -C "$container_dir" ${verbose:+-v} ${remove_container:+-x} ${guess:+-G} ${use_mimetype:+-m} ${hash_filename:+-H "$hash_filename"} "$file"
+		                    unwrap -C "$container_dir" ${verbose:+-v} ${remove_container:+-x} ${guess:+-G} ${use_mimetype:+-m} ${hash_filename:+-H "$hash_filename"} "$file"
                         else
                             if [ -n "$hash_filename" ]; then
                                 verbose "$file: Calculating SHA256 hash"
