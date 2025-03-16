@@ -6,7 +6,17 @@
 
   nativeBuildInputs = [];
   buildInputs = [];
-  propagatedBuildInputs = [ pkgs.python3 ];
+  propagatedBuildInputs = [ ( pkgs.python3.withPackages(ps: with ps; [
+        (buildPythonPackage rec {
+            pname = "giturlparse";
+            version = "0.12.0";
+            src = fetchPypi {
+              inherit pname version;
+              sha256 = "16l5qgc2m98yz3j4gjzx3xf20ykm73h6d5bpn68m8hyc3b1ggzy0";
+            };
+        })
+        ]))
+  ];
 
   buildPhase = "";
 
