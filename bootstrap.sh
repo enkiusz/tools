@@ -63,7 +63,10 @@ echo "Temporary directory will be '$TMPDIR'"
 )
 
 # Stow tools
-( cd "$STOW_DIR"; stow tools )
+# Don't fold as ~/.local/{bin,lib,share} is often used by other tools and making
+# it a symlink to the stow package directory might end up creating random files
+# in the repo.
+( cd "$STOW_DIR"; stow --no-folding tools )
 
 echo ""
 echo ""
