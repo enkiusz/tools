@@ -47,7 +47,7 @@ config = SimpleNamespace(
     # Modbus protocol settings
     address=1,
     query_period=5,  # Time between Modbus queries
-    
+
     # MQTT broker hostname
     mqtt_broker=None,
 
@@ -107,6 +107,58 @@ def modbus_source(config):
     while True:
 
           yield({
+            'l1_voltage': dict(u='V', v=meter.read('l1_voltage')),
+            'l2_voltage': dict(u='V', v=meter.read('l2_voltage')),
+            'l3_voltage': dict(u='V', v=meter.read('l3_voltage')),
+
+            'l1_current': dict(u='A', v=meter.read('l1_current')),
+            'l2_current': dict(u='A', v=meter.read('l2_current')),
+            'l3_current': dict(u='A', v=meter.read('l3_current')),
+
+            'l1_power_active': dict(u='W', v=meter.read('l1_power_active')),
+            'l2_power_active': dict(u='W', v=meter.read('l2_power_active')),
+            'l3_power_active': dict(u='W', v=meter.read('l3_power_active')),
+
+            'l1_power_apparent': dict(u='VA', v=meter.read('l1_power_apparent')),
+            'l2_power_apparent': dict(u='VA', v=meter.read('l2_power_apparent')),
+            'l3_power_apparent': dict(u='VA', v=meter.read('l3_power_apparent')),
+
+            'l1_power_reactive': dict(u='VAr', v=meter.read('l1_power_reactive')),
+            'l2_power_reactive': dict(u='VAr', v=meter.read('l2_power_reactive')),
+            'l3_power_reactive': dict(u='VAr', v=meter.read('l3_power_reactive')),
+
+            'l1_power_factor': dict(u='1/1', v=meter.read('l1_power_factor')),
+            'l2_power_factor': dict(u='1/1', v=meter.read('l2_power_factor')),
+            'l3_power_factor': dict(u='1/1', v=meter.read('l3_power_factor')),
+
+            'voltage_ln': dict(u='V', v=meter.read('voltage_ln'), description='Average L-N Voltage'),
+            'current_ln': dict(u='A', v=meter.read('current_ln'), description='Average L-N Current'),
+
+            'total_line_current': dict(u='A', v=meter.read('total_line_current'), description='Sum of line currents'),
+
+            'total_power': dict(u='W', v=meter.read('total_power')),
+            'total_power_apparent': dict(u='VA', v=meter.read('total_power_apparent')),
+            'total_power_reactive': dict(u='VAr', v=meter.read('total_power_reactive')),
+
+            'total_pf': dict(u='1/1', v=meter.read('total_pf')),
+            'frequency': dict(u='Hz', v=meter.read('frequency')),
+
+            'l12_voltage': dict(u='V', v=meter.read('l12_voltage')),
+            'l23_voltage': dict(u='V', v=meter.read('l23_voltage')),
+            'l31_voltage': dict(u='V', v=meter.read('l31_voltage')),
+            'voltage_ll': dict(u='V', v=meter.read('voltage_ll'), description='Average L-L Voltage'),
+
+            'neutral_current': dict(u='A', v=meter.read('neutral_current')),
+
+            'total_energy_active': dict(u='kWh', v=meter.read('total_energy_active')),
+            'total_energy_reactive': dict(u='kVArh', v=meter.read('total_energy_reactive')),
+
+            'resettable_total_energy_active': dict(u='kWh', v=meter.read('resettable_total_energy_active')),
+            'resettable_import_enerty_active': dict(u='kWh', v=meter.read('resettable_import_enerty_active')),
+            'resettable_export_energy_active': dict(u='kWh', v=meter.read('resettable_export_energy_active')),
+
+            'net_kwh': dict(u='kWh', v=meter.read('net_kwh'), description='Net kWh (Import - Export)'),
+
             # Take absolute values on both measurements, the import/export names already indicate the direction where energy flows.
             # Negatie energy flow values are confusing.
             'total_import_active_power': dict(u='W', v=abs(meter.read('import_total_power_active'))),
