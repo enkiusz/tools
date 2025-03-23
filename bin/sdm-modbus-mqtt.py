@@ -20,7 +20,6 @@ from pathlib import Path
 import time
 import random
 import threading
-from types import Tuple
 
 # $ python3 -m pip install sdm_modbus
 import sdm_modbus
