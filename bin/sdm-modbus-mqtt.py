@@ -66,8 +66,8 @@ config = SimpleNamespace(
       'l2_power_active',
       'l3_power_active',
       'total_power',
-      'total_import_active_power',
-      'total_export_active_power',
+      'import_total_power_active',
+      'export_total_power_active',
     ]
 )
 
