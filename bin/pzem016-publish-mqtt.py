@@ -32,12 +32,8 @@ log = structlog.get_logger()
 config = SimpleNamespace(
     loglevel='INFO',
 
-    # See:
-    # $ python3 -m serial.tools.list_ports -v
-    serialport_query = '',
-
     # Default serial port settings
-    port=None,
+    port='/dev/ttyUSB0',
     baud=9600,
     stopbits=1,
     parity='N',
@@ -79,13 +75,11 @@ def cleanup_pzem_reading(reading):
 
 def modbus_source(config):
 
-    if config.port is None:
-        config.port=find_serial_port(config.serialport_query)
+    port = serial.serial_for_url(config.port)
+    log.info('using serial port', config=config.port, port=port)
 
-    log.info('using serial port', port=config.port)
-
-    pzem_left = PZEM_016(config.port, slave_addr=16)
-    pzem_right = PZEM_016(config.port, slave_addr=17)
+    pzem_left = PZEM_016(port, slave_addr=16)
+    pzem_right = PZEM_016(port, slave_addr=17)
 
     while True:
         measurement=dict()
@@ -140,20 +134,18 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Measure wind speed based on sensor pulse frequency, send to MQTT broker as RFC8428 SenML Records')
     parser.add_argument('--loglevel', choices=LOG_LEVEL_NAMES, default='INFO', help='Change log level')
-    parser.add_argument('-p', '--port', metavar='DEV', help='The serial port that connects to the Modbus RTU master interface')
-    parser.add_argument('--find-serialport', metavar='QUERY', dest='serialport_query', help='Find a serial port using serial.tools.list_ports.grep(QUERY)')
+    parser.add_argument('-p', '--port', metavar='URL', help='The pyserial-compatible URL of the serial port that connects to the Modbus RTU master interface')
     parser.add_argument('-b', '--baud', metavar='BPS', type=int, help='The bitrate of the Modbus RTU serial port')
     parser.add_argument('--mqtt-broker', metavar='NAME', help='Send data to specified MQTT broker URL')
     parser.add_argument('--topic-base', metavar='TOPIC', help='Set MQTT topic base')
     parser.add_argument('--mqtt-reconnect-delay', metavar='MIN MAX', nargs=2, type=int, help='Set MQTT client reconnect behaviour')
-
 
     args = parser.parse_args()
 
     # Restrict log message to be above selected level
     structlog.configure( wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, args.loglevel)) )
     logging.basicConfig(level=getattr(logging, args.loglevel))
-    paho_logger = logging.getLogger('paho-mqtt')
+    paho_logger = logging.getLogger('paho.mqtt.client.Client')
 
     config.__dict__.update({ (k,v) for (k,v) in vars(args).items() if v is not None})
     log.debug('config', config=config)
