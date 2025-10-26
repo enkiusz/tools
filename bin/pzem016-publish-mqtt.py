@@ -25,16 +25,16 @@ import minimalmodbus
 
 # Reference: https://stackoverflow.com/a/49724281
 LOG_LEVEL_NAMES = [logging.getLevelName(v) for v in
-                   sorted(getattr(logging, '_levelToName', None) or logging._levelNames) if getattr(v, "real", 0)]
+                   sorted(getattr(logging, '_levelToName', None) or logging._levelNames) if getattr(v, 'real', 0)]
 
 log = structlog.get_logger()
 
 config = SimpleNamespace(
-    loglevel="INFO",
+    loglevel='INFO',
 
     # See:
     # $ python3 -m serial.tools.list_ports -v
-    serialport_query = "",
+    serialport_query = '',
 
     # Default serial port settings
     port=None,
@@ -44,13 +44,13 @@ config = SimpleNamespace(
     timeout=1,
 
     # Modbus protocol settings
-    query_period=5,  # Time between Modbus queries
+    query_period=10,  # Time between Modbus queries
 
     # MQTT broker hostname
     mqtt_broker=None,
 
     # MQTT topic
-    topic_base="pzem016",
+    topic_base='pzem016',
 
     # MQTT reconnect parameters
     mqtt_reconnect_delay=(1, 5),
@@ -98,7 +98,8 @@ def modbus_source(config):
             measurement['left'] = reading_left
         except minimalmodbus.ModbusException as e:
             log.error('modbus error', pzem=pzem_left, _exc_info=e)
-            time.sleep(config.query_period / 2)
+
+        time.sleep(config.query_period / 2)
 
         try:
             reading_right = pzem_right.read()
@@ -108,12 +109,12 @@ def modbus_source(config):
             measurement['right'] = reading_right
         except minimalmodbus.ModbusException as e:
             log.error('modbus error', pzem=pzem_right, _exc_info=e)
-            time.sleep(config.query_period / 2)
+
+        time.sleep(config.query_period / 2)
 
         if len(measurement) > 0:
             yield measurement
 
-        time.sleep(config.query_period)
 
 def measurement_loop(config, source):
 
@@ -130,27 +131,29 @@ def measurement_loop(config, source):
                mqtt_client.publish(topic, qos=1, payload=payload)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Restrict log message to be above selected level
     structlog.configure(
         wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
         logger_factory=structlog.PrintLoggerFactory(file=sys.stderr)
     )
 
-    parser = argparse.ArgumentParser(description="Measure wind speed based on sensor pulse frequency, send to MQTT broker as RFC8428 SenML Records")
+    parser = argparse.ArgumentParser(description='Measure wind speed based on sensor pulse frequency, send to MQTT broker as RFC8428 SenML Records')
     parser.add_argument('--loglevel', choices=LOG_LEVEL_NAMES, default='INFO', help='Change log level')
-    parser.add_argument("-p", "--port", metavar="DEV", help="The serial port that connects to the Modbus RTU master interface")
-    parser.add_argument("--find-serialport", metavar="QUERY", dest="serialport_query", help="Find a serial port using serial.tools.list_ports.grep(QUERY)")
-    parser.add_argument("-b", "--baud", metavar="BPS", type=int, help="The bitrate of the Modbus RTU serial port")
-    parser.add_argument("--mqtt-broker", metavar="NAME", help="Send data to specified MQTT broker URL")
-    parser.add_argument("--topic-base", metavar="TOPIC", help="Set MQTT topic base")
-    parser.add_argument("--mqtt-reconnect-delay", metavar="MIN MAX", nargs=2, type=int, help="Set MQTT client reconnect behaviour")
+    parser.add_argument('-p', '--port', metavar='DEV', help='The serial port that connects to the Modbus RTU master interface')
+    parser.add_argument('--find-serialport', metavar='QUERY', dest='serialport_query', help='Find a serial port using serial.tools.list_ports.grep(QUERY)')
+    parser.add_argument('-b', '--baud', metavar='BPS', type=int, help='The bitrate of the Modbus RTU serial port')
+    parser.add_argument('--mqtt-broker', metavar='NAME', help='Send data to specified MQTT broker URL')
+    parser.add_argument('--topic-base', metavar='TOPIC', help='Set MQTT topic base')
+    parser.add_argument('--mqtt-reconnect-delay', metavar='MIN MAX', nargs=2, type=int, help='Set MQTT client reconnect behaviour')
 
 
     args = parser.parse_args()
 
     # Restrict log message to be above selected level
     structlog.configure( wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, args.loglevel)) )
+    logging.basicConfig(level=getattr(logging, args.loglevel))
+    paho_logger = logging.getLogger('paho-mqtt')
 
     config.__dict__.update({ (k,v) for (k,v) in vars(args).items() if v is not None})
     log.debug('config', config=config)
@@ -158,14 +161,15 @@ if __name__ == "__main__":
     if config.mqtt_broker:
         broker_url = urlparse(config.mqtt_broker)
 
-        import paho.mqtt.client as mqtt
+        import paho.mqtt.client
+        import paho.mqtt.enums
         import ssl
 
-        mqtt_client = mqtt.Client()
-        #mqtt_client.enable_logger(logger=log)  # FIXME: How to configure paho-mqtt to use structlog?
+        mqtt_client = paho.mqtt.client.Client(callback_api_version=paho.mqtt.enums.CallbackAPIVersion.VERSION2)
+        mqtt_client.enable_logger(logger=paho_logger)
 
         if broker_url.scheme == 'mqtts':
-            log.debug("Initializing MQTT TLS")
+            log.debug('Initializing MQTT TLS')
             mqtt_client.tls_set(cert_reqs=ssl.CERT_NONE)
             mqtt_port = 8883
         else:
@@ -176,12 +180,12 @@ if __name__ == "__main__":
             mqtt_client.reconnect_delay_set(min_delay=_min_delay, max_delay=_max_delay)
 
         try:
-            log.info("Connecting to MQTT broker URL '{}'".format(config.mqtt_broker))
+            log.info('Connecting to MQTT broker', url=config.mqtt_broker)
             mqtt_client.connect(broker_url.netloc, port=mqtt_port)
             mqtt_client.loop_start()
         except:
             # Connection to broker failed
-            log.error("Cannot connect to MQTT broker", exc_info=True)
+            log.error('Cannot connect to MQTT broker', exc_info=True)
             sys.exit(1)
     else:
         mqtt_client = None
