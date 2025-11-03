@@ -17,7 +17,7 @@
 #%- ear files -> requires 'unzip'
 #%- rar archives -> requires 'unrar'
 #%- 7z archives -> requires '7z'
-#%- rpm packages -> requires 'rpm2tar' and 'tar'
+#%- rpm packages -> requires 'rpm2cpio' and 'cpio'
 #%- deb packages -> requires 'dpkg-deb'
 #%- iso images -> requires '7z'
 #%- ipa images -> requires 'unzip'
@@ -165,7 +165,7 @@ detect_container() {
         tar) unpack_cmd='tar -C "$unwrap_dir" ${auto_compress:+--auto-compress} -x${verbose:+v}f "$container"';;
         rar) unpack_cmd='[ -z "$verbose" ] && unrar_quiet_flag="-inul"; unrar $unrar_quiet_flag x "$container" "$unwrap_dir/"';;
         7z) unpack_cmd='if [ -z "$verbose" ]; then 7z x -o"$unwrap_dir" "$container" > /dev/null; else 7z x -o"$unwrap_dir" "$container"; fi';;
-        rpm) unpack_cmd='rpm2tar -O "$container" | tar -C "$unwrap_dir" -x${verbose:+v}';;
+        rpm) unpack_cmd='rpm2cpio "$container" | cpio -D "$unwrap_dir" -idm ${verbose:+-v}';;
         dpkg) unpack_cmd='dpkg-deb -x "$container"  "$unwrap_dir"';;
         iso) unpack_cmd='if [ -z "$verbose" ]; then 7z x -o"$unwrap_dir" "$container" > /dev/null; else 7z x -o"$unwrap_dir" "$container"; fi';;
         cpio) unpack_cmd='cpio -id${verbose:+}v "$unwrap_dir" < "$container"';;
