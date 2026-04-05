@@ -10,6 +10,8 @@
         (buildPythonPackage rec {
             pname = "giturlparse";
             version = "0.12.0";
+	    pyproject = true;
+	    build-system = [ setuptools ];
             src = fetchPypi {
               inherit pname version;
               sha256 = "16l5qgc2m98yz3j4gjzx3xf20ykm73h6d5bpn68m8hyc3b1ggzy0";
