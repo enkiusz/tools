@@ -25,7 +25,7 @@ echo "# Configuration:"
 echo "# Repos will be cloned into '$REPOS_ROOT'"
 echo "# Packages will be stowed inside '$STOW_DIR'"
 
-mkdir -p "$REPOS_ROOT" "$STOW_DIR"
+mkdir -p "$REPOS_ROOT" "$STOW_DIR" $HOME/.local/bin
 
 # Mimick what `clonerepo` would do
 git clone https://github.com/enkiusz/tools.git $REPOS_ROOT/github.com/enkiusz/tools
