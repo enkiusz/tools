@@ -61,5 +61,3 @@ echo "In more recent Linux distributions this directory is added to the PATH aut
 echo "to logout and login again and see if the PATH variable contains the \"\$PATH:\$HOME/.local/bin\" directory"
 echo ""
 echo ""
-
-rm -r "$TMPDIR"
