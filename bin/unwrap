@@ -110,6 +110,7 @@ detect_suffix() {
         *.udeb) suffix='.udeb';;
         *.iso) suffix='.iso';;
         *.cpio) suffix='.cpio';;
+        *.whl) suffix='.whl';;
     esac
 
     echo $suffix
@@ -146,6 +147,7 @@ detect_container() {
             .7z) typecode=7z;;
             .cpio) typecode=cpio;;
             .jar|.war|.ear) typecode=zip;;
+            .whl) typecode=zip;;
             .apk|.xapk|.ipa) typecode=zip;;
             .docx) typecode=zip;;
             .tar|.tar.gz|.tar.bz2|.tar.xz|.tgz|.tbz2) typecode='tar'; flags+=('auto_compress=1');;
