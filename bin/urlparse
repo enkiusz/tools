@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --with giturlparse --script
 
 ## Category: Various
 ## Shortdesc: Parse and split Resource Identifiers (URLs, GIT_URIs, etc.)

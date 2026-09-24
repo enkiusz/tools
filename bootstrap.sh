@@ -4,12 +4,18 @@ no_prereqs() {
 	echo '# The toolset requires the following tools to be installed:'
 	echo '# - stow'
 	echo '# - git'
+ 	echo '# - python3'
+    echo '# - uv'
+ 	echo '# - realpath'
 	echo '#'
 	exit 1
 }
 
 which stow >/dev/null 2>&1 || no_prereqs
 which git >/dev/null 2>&1 || no_prereqs
+which python3 >/dev/null 2>&1 || no_prereqs
+which uv >/dev/null 2>&1 || no_prereqs
+which realpath >/dev/null 2>&1 || no_prereqs
 
 #
 # Configuration
