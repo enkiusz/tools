@@ -5,7 +5,7 @@ if [ -z "$STOW_DIR" ]; then
         STOW_DIR="$HOME/stow"
 fi
 if [ -z "$PKG_NAME" ]; then
-	PKG_NAME=$(basename $PWD)
+	PKG_NAME=$(basename "$PWD")
 fi
 if [ -z "$DEFAULT_TARGET" ]; then
 	DEFAULT_TARGET=".local/"
